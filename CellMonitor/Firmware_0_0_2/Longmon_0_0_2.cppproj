@@ -27,15 +27,15 @@
     <BootSegment>0</BootSegment>
     <AsfFrameworkConfig>
       <framework-data>
-        <options />
-        <configurations />
-        <files />
-        <documentation help="" />
-        <offline-documentation help="" />
-        <dependencies>
-          <content-extension eid="atmel.asf" uuidref="Atmel.ASF" version="3.25.0" />
-        </dependencies>
-      </framework-data>
+  <options />
+  <configurations />
+  <files />
+  <documentation help="" />
+  <offline-documentation help="" />
+  <dependencies>
+    <content-extension eid="atmel.asf" uuidref="Atmel.ASF" version="3.26.0" />
+  </dependencies>
+</framework-data>
     </AsfFrameworkConfig>
     <preserveEEPROM>true</preserveEEPROM>
     <avrtool>com.atmel.avrdbg.tool.ispmk2</avrtool>
@@ -66,6 +66,8 @@
       <ToolName>Atmel-ICE</ToolName>
     </com_atmel_avrdbg_tool_atmelice>
     <UseGdb>False</UseGdb>
+    <ResetRule>0</ResetRule>
+    <EraseKey />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <ToolchainSettings>
@@ -81,7 +83,7 @@
     <ListValues>
       <Value>__AVR_ATmega328p__</Value>
       <Value>__AVR_ATmega328P__</Value>
-      <Value>ARDUINO=10802</Value>
+      <Value>ARDUINO=10805</Value>
       <Value>ARDUINO_MAIN</Value>
       <Value>F_CPU=8000000L</Value>
       <Value>__AVR__</Value>
@@ -91,20 +93,19 @@
   </avrgcc.compiler.symbols.DefSymbols>
   <avrgcc.compiler.directories.IncludePaths>
     <ListValues>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/libraries/SoftwareSerial/src</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/libraries/EEPROM/src</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/libraries</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/libraries</Value>
-      <Value>C:/Users/schi/Documents/Arduino/libraries</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/cores/arduino</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/variants/eightanaloginputs</Value>
       <Value>../../../Firmware_0_0_2</Value>
-      <Value>E:/!Projekte/BMSv2.0/ProjectLib</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/avr/include/</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/avr/include/avr/</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/lib/gcc/avr/4.8.1/include</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/lib/gcc/avr/4.9.2/include</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/lib/gcc/avr/4.9.3/include</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/SoftwareSerial/src</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/libraries</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries</Value>
+      <Value>C:/Users/Andreas/Documents/Arduino/libraries</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/cores/arduino</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/variants/eightanaloginputs</Value>
+      <Value>C:/git/BMSv2.0/ProjectLib</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/avr/include/</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/avr/include/avr/</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/lib/gcc/avr/4.8.1/include</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/lib/gcc/avr/4.9.2/include</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/lib/gcc/avr/4.9.3/include</Value>
     </ListValues>
   </avrgcc.compiler.directories.IncludePaths>
   <avrgcc.compiler.optimization.level>Optimize (-O1)</avrgcc.compiler.optimization.level>
@@ -118,7 +119,7 @@
     <ListValues>
       <Value>__AVR_ATmega328p__</Value>
       <Value>__AVR_ATmega328P__</Value>
-      <Value>ARDUINO=10802</Value>
+      <Value>ARDUINO=10805</Value>
       <Value>ARDUINO_MAIN</Value>
       <Value>F_CPU=8000000L</Value>
       <Value>__AVR__</Value>
@@ -128,20 +129,19 @@
   </avrgcccpp.compiler.symbols.DefSymbols>
   <avrgcccpp.compiler.directories.IncludePaths>
     <ListValues>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/libraries/SoftwareSerial/src</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/libraries/EEPROM/src</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/libraries</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/libraries</Value>
-      <Value>C:/Users/schi/Documents/Arduino/libraries</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/cores/arduino</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/variants/eightanaloginputs</Value>
       <Value>../../../Firmware_0_0_2</Value>
-      <Value>E:/!Projekte/BMSv2.0/ProjectLib</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/avr/include/</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/avr/include/avr/</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/lib/gcc/avr/4.8.1/include</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/lib/gcc/avr/4.9.2/include</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/lib/gcc/avr/4.9.3/include</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/SoftwareSerial/src</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/libraries</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries</Value>
+      <Value>C:/Users/Andreas/Documents/Arduino/libraries</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/cores/arduino</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/variants/eightanaloginputs</Value>
+      <Value>C:/git/BMSv2.0/ProjectLib</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/avr/include/</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/avr/include/avr/</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/lib/gcc/avr/4.8.1/include</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/lib/gcc/avr/4.9.2/include</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/lib/gcc/avr/4.9.3/include</Value>
     </ListValues>
   </avrgcccpp.compiler.directories.IncludePaths>
   <avrgcccpp.compiler.optimization.level>Optimize (-O1)</avrgcccpp.compiler.optimization.level>
@@ -159,7 +159,7 @@
   <avrgcccpp.assembler.debugging.DebugLevel>Default (-Wa,-g)</avrgcccpp.assembler.debugging.DebugLevel>
 </AvrGccCpp>
     </ToolchainSettings>
-    <VMSETTING_IncludePaths>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.5.2/libraries;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.5.2/hardware/arduino/avr/libraries;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/libraries;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.5.2/hardware/arduino/avr/cores/arduino;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.5.2/hardware/arduino/avr/cores/arduino/avr-libc;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.5.2/hardware/arduino/avr/variants/standard;../../../Longmon_0_0_2;c:/svn/trunk/testprogramme/automatisierung/microcontroller-sourcen/arduino-1.5.2/hardware/tools/avr/avr/include/;c:/svn/trunk/testprogramme/automatisierung/microcontroller-sourcen/arduino-1.5.2/hardware/tools/avr/avr/include/avr/;c:/svn/trunk/testprogramme/automatisierung/microcontroller-sourcen/arduino-1.5.2/hardware/tools/avr/avr/;c:/svn/trunk/testprogramme/automatisierung/microcontroller-sourcen/arduino-1.5.2/hardware/tools/avr/lib/gcc/avr/4.3.2/include/;../../../Longmon_Firmware_0_0_2;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/libraries/SoftwareSerial/src;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/libraries;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/libraries;C:/Users/schi/Documents/Arduino/libraries;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/cores/arduino;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/variants/eightanaloginputs;../../../Firmware_0_0_2;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/avr/include/;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/avr/include/avr/;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/lib/gcc/avr/4.8.1/include;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/lib/gcc/avr/4.9.2/include;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/lib/gcc/avr/4.9.3/include;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/variants/standard;C:/Users/schi/Documents/Arduino/libraries/Crc16-master;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/libraries/EEPROM/src;E:/!Projekte/BMSv2.0/ProjectLib;</VMSETTING_IncludePaths>
+    <VMSETTING_IncludePaths>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.5.2/libraries;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.5.2/hardware/arduino/avr/libraries;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/libraries;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.5.2/hardware/arduino/avr/cores/arduino;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.5.2/hardware/arduino/avr/cores/arduino/avr-libc;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.5.2/hardware/arduino/avr/variants/standard;../../../Longmon_0_0_2;c:/svn/trunk/testprogramme/automatisierung/microcontroller-sourcen/arduino-1.5.2/hardware/tools/avr/avr/include/;c:/svn/trunk/testprogramme/automatisierung/microcontroller-sourcen/arduino-1.5.2/hardware/tools/avr/avr/include/avr/;c:/svn/trunk/testprogramme/automatisierung/microcontroller-sourcen/arduino-1.5.2/hardware/tools/avr/avr/;c:/svn/trunk/testprogramme/automatisierung/microcontroller-sourcen/arduino-1.5.2/hardware/tools/avr/lib/gcc/avr/4.3.2/include/;../../../Longmon_Firmware_0_0_2;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/libraries/SoftwareSerial/src;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/libraries;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/libraries;C:/Users/schi/Documents/Arduino/libraries;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/cores/arduino;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/variants/eightanaloginputs;../../../Firmware_0_0_2;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/avr/include/;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/avr/include/avr/;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/lib/gcc/avr/4.8.1/include;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/lib/gcc/avr/4.9.2/include;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/lib/gcc/avr/4.9.3/include;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/variants/standard;C:/Users/schi/Documents/Arduino/libraries/Crc16-master;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/libraries/EEPROM/src;E:/!Projekte/BMSv2.0/ProjectLib;C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/SoftwareSerial/src;C:/Programme(andi)/arduino-1.8.5/libraries;C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries;C:/Users/Andreas/Documents/Arduino/libraries;C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/cores/arduino;C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/variants/eightanaloginputs;C:/git/BMSv2.0/ProjectLib;C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/avr/include/;C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/avr/include/avr/;C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/lib/gcc/avr/4.8.1/include;C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/lib/gcc/avr/4.9.2/include;C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/lib/gcc/avr/4.9.3/include;</VMSETTING_IncludePaths>
     <VisualMicroSettings>
       <VisualMicroSettings>
         <vm.upload.useprogrammer>1</vm.upload.useprogrammer>
@@ -491,7 +491,7 @@ build.arch=AVR
     <ListValues>
       <Value>__AVR_ATmega328p__</Value>
       <Value>__AVR_ATmega328P__</Value>
-      <Value>ARDUINO=10802</Value>
+      <Value>ARDUINO=10805</Value>
       <Value>ARDUINO_MAIN</Value>
       <Value>F_CPU=8000000L</Value>
       <Value>__AVR__</Value>
@@ -501,20 +501,19 @@ build.arch=AVR
   </avrgcc.compiler.symbols.DefSymbols>
   <avrgcc.compiler.directories.IncludePaths>
     <ListValues>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/libraries/SoftwareSerial/src</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/libraries/EEPROM/src</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/libraries</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/libraries</Value>
-      <Value>C:/Users/schi/Documents/Arduino/libraries</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/cores/arduino</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/variants/eightanaloginputs</Value>
       <Value>../../../Firmware_0_0_2</Value>
-      <Value>E:/!Projekte/BMSv2.0/ProjectLib</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/avr/include/</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/avr/include/avr/</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/lib/gcc/avr/4.8.1/include</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/lib/gcc/avr/4.9.2/include</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/lib/gcc/avr/4.9.3/include</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/SoftwareSerial/src</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/libraries</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries</Value>
+      <Value>C:/Users/Andreas/Documents/Arduino/libraries</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/cores/arduino</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/variants/eightanaloginputs</Value>
+      <Value>C:/git/BMSv2.0/ProjectLib</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/avr/include/</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/avr/include/avr/</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/lib/gcc/avr/4.8.1/include</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/lib/gcc/avr/4.9.2/include</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/lib/gcc/avr/4.9.3/include</Value>
     </ListValues>
   </avrgcc.compiler.directories.IncludePaths>
   <avrgcc.compiler.optimization.level>Optimize (-O1)</avrgcc.compiler.optimization.level>
@@ -528,7 +527,7 @@ build.arch=AVR
     <ListValues>
       <Value>__AVR_ATmega328p__</Value>
       <Value>__AVR_ATmega328P__</Value>
-      <Value>ARDUINO=10802</Value>
+      <Value>ARDUINO=10805</Value>
       <Value>ARDUINO_MAIN</Value>
       <Value>F_CPU=8000000L</Value>
       <Value>__AVR__</Value>
@@ -538,20 +537,19 @@ build.arch=AVR
   </avrgcccpp.compiler.symbols.DefSymbols>
   <avrgcccpp.compiler.directories.IncludePaths>
     <ListValues>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/libraries/SoftwareSerial/src</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/libraries/EEPROM/src</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/libraries</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/libraries</Value>
-      <Value>C:/Users/schi/Documents/Arduino/libraries</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/cores/arduino</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/variants/eightanaloginputs</Value>
       <Value>../../../Firmware_0_0_2</Value>
-      <Value>E:/!Projekte/BMSv2.0/ProjectLib</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/avr/include/</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/avr/include/avr/</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/lib/gcc/avr/4.8.1/include</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/lib/gcc/avr/4.9.2/include</Value>
-      <Value>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/lib/gcc/avr/4.9.3/include</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/SoftwareSerial/src</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/libraries</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries</Value>
+      <Value>C:/Users/Andreas/Documents/Arduino/libraries</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/cores/arduino</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/variants/eightanaloginputs</Value>
+      <Value>C:/git/BMSv2.0/ProjectLib</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/avr/include/</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/avr/include/avr/</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/lib/gcc/avr/4.8.1/include</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/lib/gcc/avr/4.9.2/include</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/lib/gcc/avr/4.9.3/include</Value>
     </ListValues>
   </avrgcccpp.compiler.directories.IncludePaths>
   <avrgcccpp.compiler.optimization.level>Optimize (-O1)</avrgcccpp.compiler.optimization.level>
@@ -569,7 +567,7 @@ build.arch=AVR
   <avrgcccpp.assembler.debugging.DebugLevel>Default (-Wa,-g)</avrgcccpp.assembler.debugging.DebugLevel>
 </AvrGccCpp>
     </ToolchainSettings>
-    <VMSETTING_IncludePaths>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.5.2/libraries;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.5.2/hardware/arduino/avr/libraries;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/libraries;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.5.2/hardware/arduino/avr/cores/arduino;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.5.2/hardware/arduino/avr/cores/arduino/avr-libc;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.5.2/hardware/arduino/avr/variants/standard;../../../Longmon_0_0_2;c:/svn/trunk/testprogramme/automatisierung/microcontroller-sourcen/arduino-1.5.2/hardware/tools/avr/avr/include/;c:/svn/trunk/testprogramme/automatisierung/microcontroller-sourcen/arduino-1.5.2/hardware/tools/avr/avr/include/avr/;c:/svn/trunk/testprogramme/automatisierung/microcontroller-sourcen/arduino-1.5.2/hardware/tools/avr/avr/;c:/svn/trunk/testprogramme/automatisierung/microcontroller-sourcen/arduino-1.5.2/hardware/tools/avr/lib/gcc/avr/4.3.2/include/;../../../Longmon_Firmware_0_0_2;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/libraries/SoftwareSerial/src;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/libraries;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/libraries;C:/Users/schi/Documents/Arduino/libraries;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/cores/arduino;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/variants/eightanaloginputs;../../../Firmware_0_0_2;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/avr/include/;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/avr/include/avr/;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/lib/gcc/avr/4.8.1/include;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/lib/gcc/avr/4.9.2/include;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/lib/gcc/avr/4.9.3/include;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/variants/standard;C:/Users/schi/Documents/Arduino/libraries/Crc16-master;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/libraries/EEPROM/src;E:/!Projekte/BMSv2.0/ProjectLib;</VMSETTING_IncludePaths>
+    <VMSETTING_IncludePaths>C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.5.2/libraries;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.5.2/hardware/arduino/avr/libraries;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/libraries;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.5.2/hardware/arduino/avr/cores/arduino;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.5.2/hardware/arduino/avr/cores/arduino/avr-libc;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.5.2/hardware/arduino/avr/variants/standard;../../../Longmon_0_0_2;c:/svn/trunk/testprogramme/automatisierung/microcontroller-sourcen/arduino-1.5.2/hardware/tools/avr/avr/include/;c:/svn/trunk/testprogramme/automatisierung/microcontroller-sourcen/arduino-1.5.2/hardware/tools/avr/avr/include/avr/;c:/svn/trunk/testprogramme/automatisierung/microcontroller-sourcen/arduino-1.5.2/hardware/tools/avr/avr/;c:/svn/trunk/testprogramme/automatisierung/microcontroller-sourcen/arduino-1.5.2/hardware/tools/avr/lib/gcc/avr/4.3.2/include/;../../../Longmon_Firmware_0_0_2;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/libraries/SoftwareSerial/src;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/libraries;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/libraries;C:/Users/schi/Documents/Arduino/libraries;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/cores/arduino;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/variants/eightanaloginputs;../../../Firmware_0_0_2;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/avr/include/;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/avr/include/avr/;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/lib/gcc/avr/4.8.1/include;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/lib/gcc/avr/4.9.2/include;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/tools/avr/lib/gcc/avr/4.9.3/include;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/variants/standard;C:/Users/schi/Documents/Arduino/libraries/Crc16-master;C:/SVN/trunk/TestProgramme/Automatisierung/Microcontroller-Sourcen/arduino-1.8.2/hardware/arduino/avr/libraries/EEPROM/src;E:/!Projekte/BMSv2.0/ProjectLib;C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/SoftwareSerial/src;C:/Programme(andi)/arduino-1.8.5/libraries;C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries;C:/Users/Andreas/Documents/Arduino/libraries;C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/cores/arduino;C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/variants/eightanaloginputs;C:/git/BMSv2.0/ProjectLib;C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/avr/include/;C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/avr/include/avr/;C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/lib/gcc/avr/4.8.1/include;C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/lib/gcc/avr/4.9.2/include;C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/lib/gcc/avr/4.9.3/include;</VMSETTING_IncludePaths>
     <VisualMicroSettings>
       <VisualMicroSettings>
         <vm.upload.useprogrammer>1</vm.upload.useprogrammer>
