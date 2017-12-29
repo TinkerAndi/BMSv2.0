@@ -1,0 +1,8 @@
+*.pdf
+*.zip
+arduino-mega-pinout-diagram.png
+Zwischenstand/
+.vs/
+Debug/
+__vm/
+Release/
