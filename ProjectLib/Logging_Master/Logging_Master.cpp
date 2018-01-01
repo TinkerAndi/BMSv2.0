@@ -195,7 +195,7 @@ bool LoggingClass::LoggMarker(uint8_t Priority)
 		m_LoggFile.print("[ERR]  ");
 		
 	}
-	if(Priority == LEVEL_FSM)
+	else if(Priority == LEVEL_FSM)
 	{
 		m_USART->print("[FSM]  ");
 		if(useFile)
