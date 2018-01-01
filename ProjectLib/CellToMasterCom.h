@@ -28,7 +28,12 @@ CRC Pruefsumme:
 	von Slaveadresse bis Datenbytes berechnet bei CRC-Fehlern wird das gesamte Datagramm vom Empfaenger verworfen.
 	
 Auf diesen Befehl des Masters hin antwortet der Slave mit einem Acknowledge Datagramm ohne CRC-Pruefsumme:
-[Slaveadresse 1 Byte]  [Fehlercode 1 Byte]
+[Dummy 1 Byte] [Arbitrierung 1 Byte] [Slaveadresse 1 Byte]  [Fehlercode 1 Byte]
+Dummy:
+	Durch das an und bschalten der TX Leitung am Slave kommt es gelegentlich zu Parasitaeren Bytes oder Fehlern im ersten Byte
+	der Master verwirft deshalb alles, was vor der Arbitrirung kommt das Dummybyte enthält einen beliebigen Wert
+Arbitrierung:
+	Ein '@' signalisiert dem Mater, dass jetzt Daten zu erwarten sind.
 Slaveadresse:
 	Der Slave sendet seine eigene Slaveadresse um vom Master identifiziert werden zu koennen
 Fehlercode:
@@ -87,17 +92,18 @@ public:
 	int8_t ChangeSLA(uint8_t newSLA);
 	int8_t CheckSLA(bool erase);
 	int8_t ACK(int8_t ErrorCode);
+	int8_t CheckACK(uint8_t SLA);
+	uint8_t CheckAvailable();
 //	int8_t Logg()
 	
 private:
 	Crc16 m_crc;
 	uint8_t* mp_SLA;
-	const uint8_t* mp_isConf = 1;
-	const uint8_t* mp_slaAdr = 2;
+	uint8_t* mp_isConf = 1;
+	uint8_t* mp_slaAdr = 2;
 	bool isMaster;
 	
 	void Arbitration();
-	int8_t CheckACK(uint8_t SLA);
 	
 };
 
@@ -146,7 +152,7 @@ int8_t CellToMasterCom::MasterOrder(uint8_t SLA, uint8_t Command, uint8_t u8_Dat
 	m_USART->write(CRC1);
 	m_USART->write(CRC2);
 	
-	return CheckACK(SLA);
+	return 1;
 }
 
 int8_t CellToMasterCom::SlaveReceive(uint8_t* Command, uint8_t* u8_Data1, uint8_t* u8_Data2, uint8_t* u8_Data3, uint8_t* u8_Data4)
@@ -363,8 +369,8 @@ int8_t CellToMasterCom::CheckACK(uint8_t SLA)
 	{
 		received = m_USART->read();
 		delay(30);
-		// m_Console->print("ACK rec 0x");
-		// m_Console->println(received, HEX);
+		m_Console->print("ACK rec 0x");
+		m_Console->println(received, HEX);
 		if(received == '@')
 		{
 			break;
@@ -375,9 +381,14 @@ int8_t CellToMasterCom::CheckACK(uint8_t SLA)
 	delay(30);
 	if(received != SLA)
 	{
-		// m_Console->print("ACK error wrong SLA - ");
-		// m_Console->println(received, HEX);
+		m_Console->print("ACK error wrong SLA - ");
+		m_Console->println(received, HEX);
 		return -4;
+	}
+	else
+	{
+		m_Console->print("ACK SLA - ");
+		m_Console->println(received, HEX);
 	}
 	Timestamp = millis();
 	while(!m_USART->available())
@@ -388,18 +399,25 @@ int8_t CellToMasterCom::CheckACK(uint8_t SLA)
 		}
 	}
 	received = m_USART->read();
-	delay(30);
+	// delay(30);
 
-	while(m_USART->available())
-	{//Restmuell abholen
-		m_USART->read();
-		delay(30);
-	}
+	// while(m_USART->available())
+	// {//Restmuell abholen
+		// m_USART->read();
+		// delay(30);
+	// }
+	m_Console->print("ACK errorcode - ");
+	m_Console->println(received, HEX);
 	
 	return received;
 }
 
+uint8_t CellToMasterCom::CheckAvailable()
+{
+	return m_USART->available();
+}
 
+/*PRIVATE: ----------------------------------------------------------------------------------------*/
 void CellToMasterCom::Arbitration()
 {
 	m_USART->print("@@@");
