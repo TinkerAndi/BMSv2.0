@@ -94,9 +94,9 @@
       <Value>C:/Users/Andreas/Documents/Arduino/libraries</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/cores/arduino</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/variants/mega</Value>
-      <Value>C:/git/ProjectLib</Value>
-      <Value>C:/git/ProjectLib/DS3231-1.0.2</Value>
-      <Value>C:/git/ProjectLib/Logging_Master</Value>
+      <Value>C:/git/BMSv2.0/ProjectLib</Value>
+      <Value>C:/git/BMSv2.0/ProjectLib/DS3231-1.0.2</Value>
+      <Value>C:/git/BMSv2.0/ProjectLib/Logging_Master</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/avr/include/</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/avr/include/avr/</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/lib/gcc/avr/4.8.1/include</Value>
@@ -136,9 +136,9 @@
       <Value>C:/Users/Andreas/Documents/Arduino/libraries</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/cores/arduino</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/variants/mega</Value>
-      <Value>C:/git/ProjectLib</Value>
-      <Value>C:/git/ProjectLib/DS3231-1.0.2</Value>
-      <Value>C:/git/ProjectLib/Logging_Master</Value>
+      <Value>C:/git/BMSv2.0/ProjectLib</Value>
+      <Value>C:/git/BMSv2.0/ProjectLib/DS3231-1.0.2</Value>
+      <Value>C:/git/BMSv2.0/ProjectLib/Logging_Master</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/avr/include/</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/avr/include/avr/</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/lib/gcc/avr/4.8.1/include</Value>
@@ -487,9 +487,9 @@ build.arch=AVR
       <Value>C:/Users/Andreas/Documents/Arduino/libraries</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/cores/arduino</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/variants/mega</Value>
-      <Value>C:/git/ProjectLib</Value>
-      <Value>C:/git/ProjectLib/DS3231-1.0.2</Value>
-      <Value>C:/git/ProjectLib/Logging_Master</Value>
+      <Value>C:/git/BMSv2.0/ProjectLib</Value>
+      <Value>C:/git/BMSv2.0/ProjectLib/DS3231-1.0.2</Value>
+      <Value>C:/git/BMSv2.0/ProjectLib/Logging_Master</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/avr/include/</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/avr/include/avr/</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/lib/gcc/avr/4.8.1/include</Value>
@@ -529,9 +529,9 @@ build.arch=AVR
       <Value>C:/Users/Andreas/Documents/Arduino/libraries</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/cores/arduino</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/variants/mega</Value>
-      <Value>C:/git/ProjectLib</Value>
-      <Value>C:/git/ProjectLib/DS3231-1.0.2</Value>
-      <Value>C:/git/ProjectLib/Logging_Master</Value>
+      <Value>C:/git/BMSv2.0/ProjectLib</Value>
+      <Value>C:/git/BMSv2.0/ProjectLib/DS3231-1.0.2</Value>
+      <Value>C:/git/BMSv2.0/ProjectLib/Logging_Master</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/avr/include/</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/avr/include/avr/</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/tools/avr/lib/gcc/avr/4.8.1/include</Value>

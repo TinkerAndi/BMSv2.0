@@ -6,22 +6,6 @@
 #define RECEIVE_DATA 5
 #define NEW_S_DETECTED 6
 
-// Kommandos die der Slave versteht
-#define BEGINN 0// !kein Kommando zum senden! 0 bedeutet, dass der Slave von vorn beginnen muss mit der Befehlskette
-//Befehle die der Slave nur ausfuehrt
-#define ARE_U_THERE 0x01
-#define SET_SLA 0x10
-#define SLEEP 0x11
-#define PASS_BALL_ON 0x20
-#define PASS_BALL_OFF 0x21
-#define ACT_BALL_ON 0x22
-#define ACT_BALL_OFF 0x23
-// Befehle auf die der Slave mit Daten antwortet
-#define SEND_VOLT 0x24
-#define SEND_INT_TEMP 0x25
-#define SEND_EXT_TEMP 0x26
-#define SEND_STATUS 0x27
-
 #include "Arduino.h"
 //#include "EEPROM.h"
 #include "Display.h"
@@ -319,6 +303,7 @@ void FSM_Communication()
 			{//Ist der Slave wach geht es mit ihm weiter
 				Gu8_FSM_State = SELECT_COMMAND;
 			}
+			Logg.Logging(LEVEL_DEBUG, "SELECT_SLAVE", Gu8_ActiveSlave);
 			break;
 		}
 		case SELECT_COMMAND:
@@ -326,10 +311,12 @@ void FSM_Communication()
 			if(Gu8_ActiveSlave == 0)
 			{
 				Slave[Gu8_ActiveSlave].SendCommand = ARE_U_THERE;
+				Logg.Logging(LEVEL_DEBUG, "SELECT_COMMAND", Slave[Gu8_ActiveSlave].SendCommand, HEX);
 			}
 			else
 			{
-					Slave[Gu8_ActiveSlave].SendCommand = SEND_STATUS;
+					Slave[Gu8_ActiveSlave].SendCommand = BLINK_ON;
+					Logg.Logging(LEVEL_DEBUG, "SELECT_COMMAND", Slave[Gu8_ActiveSlave].SendCommand, HEX);
 //hier kommt noch eine richtige Befehlsauswahl
 			}
 			Gu8_FSM_State = SEND_COMMAND;
@@ -338,7 +325,7 @@ void FSM_Communication()
 		case SEND_COMMAND:
 		{
 			Communication.MasterOrder(Slave[Gu8_ActiveSlave].S_Address, Slave[Gu8_ActiveSlave].SendCommand, Slave[Gu8_ActiveSlave].SendData[0], Slave[Gu8_ActiveSlave].SendData[1], Slave[Gu8_ActiveSlave].SendData[2], Slave[Gu8_ActiveSlave].SendData[3]);
-			Slave[Gu8_ActiveSlave].Timeout= millis() + 250;
+			Slave[Gu8_ActiveSlave].Timeout= millis() + 500;
 			Logg.Logging(LEVEL_DEBUG, "Sent Command to Slave", Gu8_ActiveSlave);
 			Logg.Logging(LEVEL_DEBUG, "Command", Slave[Gu8_ActiveSlave].SendCommand, HEX);
 			Logg.Logging(LEVEL_DEBUG, "Slaveadress", Slave[Gu8_ActiveSlave].S_Address, HEX);
@@ -356,6 +343,7 @@ void FSM_Communication()
 				{// Bei Erfolg geht es hier weiter
 					if (Slave[Gu8_ActiveSlave].SendCommand >= SEND_VOLT && Slave[Gu8_ActiveSlave].SendCommand <= SEND_STATUS)
 					{// Alle Befehle, die Daten vom Slave einfordern benoetigen nach dem ACK eine Routine zum datenempfang
+						Logg.Logging(LEVEL_DEBUG, "WAIT_FOR_ACK successful next is RECEIVE_DATA");
 						Gu8_FSM_State = RECEIVE_DATA;
 					}
 					else if(Slave[Gu8_ActiveSlave].S_Address == 0xFF && Slave[Gu8_ActiveSlave].SendCommand == ARE_U_THERE)
@@ -367,6 +355,7 @@ void FSM_Communication()
 						}
 						else
 						{// ist die Slavetabelle voll, wird mit der Kommunikation wie gehabt fort gefahren
+							Logg.Logging(LEVEL_DEBUG, "WAIT_FOR_ACK successful Selavetable full next is SELECT_SLAVE");
 							Gu8_FSM_State = SELECT_SLAVE;
 						}
 					}
@@ -378,6 +367,7 @@ void FSM_Communication()
 					}
 					else
 					{// in allen anderen Faellen, kann der naechse Befehl gesendet werden
+						Logg.Logging(LEVEL_DEBUG, "WAIT_FOR_ACK successful next is SELECT_COMMAND");
 						Gu8_FSM_State = SELECT_COMMAND;
 					}
 					
@@ -399,22 +389,22 @@ void FSM_Communication()
 					Gu8_FSM_State = SELECT_SLAVE;// es wird erstmal mit allen anderen Slaves kommuniziert so, dass dieser Slave ein wenig Zeit bekommt
 				}
 			}
-				else if(Slave[Gu8_ActiveSlave].Timeout < millis())
-				{
-					if(Gu8_ActiveSlave == 0)
-					{// Beim Suchen nach neuen Mitarbeitern darf schon mal ein Timeout auftreten
-					}
-					else
-					{// kommt von eingestelleten Mitarbeitern keine Antwort, wird hier ein timeout error protokolliert
-						Logg.Logging(LEVEL_ERROR, "ACK receiving Timeout at SlavetableNo", Gu8_ActiveSlave);
-						Logg.Logging(LEVEL_ERROR, "ACK receiving Timeout at Slaveadress", Slave[Gu8_ActiveSlave].S_Address, HEX);
-						if(Gu8_ActiveSlave != 0 && Slave[Gu8_ActiveSlave].ErrorCounter < 190)
-						{// der Fehlercounter wird nur fuer bekannte Slaves gezaehlt und soll 200 nicht ueberschreiten
-							Slave[Gu8_ActiveSlave].ErrorCounter += 10;
-					}
-					Slave[Gu8_ActiveSlave].SleepDelay = 20;
-					Gu8_FSM_State = SELECT_SLAVE;// es wird erstmal mit allen anderen Slaves kommuniziert so, dass dieser Slave ein wenig Zeit bekommt
+			else if(Slave[Gu8_ActiveSlave].Timeout < millis())
+			{
+				if(Gu8_ActiveSlave == 0)
+				{// Beim Suchen nach neuen Mitarbeitern darf schon mal ein Timeout auftreten
 				}
+				else
+				{// kommt von eingestelleten Mitarbeitern keine Antwort, wird hier ein timeout error protokolliert
+					Logg.Logging(LEVEL_ERROR, "ACK receiving Timeout at SlavetableNo", Gu8_ActiveSlave);
+					Logg.Logging(LEVEL_ERROR, "ACK receiving Timeout at Slaveadress", Slave[Gu8_ActiveSlave].S_Address, HEX);
+					if(Gu8_ActiveSlave != 0 && Slave[Gu8_ActiveSlave].ErrorCounter < 190)
+					{// der Fehlercounter wird nur fuer bekannte Slaves gezaehlt und soll 200 nicht ueberschreiten
+						Slave[Gu8_ActiveSlave].ErrorCounter += 10;
+				}
+				Slave[Gu8_ActiveSlave].SleepDelay = 20;
+				Gu8_FSM_State = SELECT_SLAVE;// es wird erstmal mit allen anderen Slaves kommuniziert so, dass dieser Slave ein wenig Zeit bekommt
+			}
 			}
 			break;
 		}
@@ -423,8 +413,8 @@ void FSM_Communication()
 			uint8_t FreeSlot;
 			for(uint8_t i = 1; i < cGu8_Slaves; i++)
 			{// sucht in der Slavetabelle den ersten freien Platz
-				if(Slave[i].S_Address == 0)
-				{// erkennt das Ende der Slavetabelle
+				if(Slave[i].S_Address == 0 || Slave[i].S_Address == 0xFF)
+				{// erkennt das Ende der Slavetabelle ist dort bereits ein neuer Slave eingetragen wird er ueberschrieben
 					FreeSlot = i;
 					break;
 				}

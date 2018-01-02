@@ -14,8 +14,10 @@ const uint8_t bal_passive = 3;
 bool	Gb_bal_Status = false;
 bool	Gb_OverTemp = false;
 bool	Gb_ExtBalControl = false; // true wenn der Ballancer von außen eingeschaltet wurde
+bool	Gb_BlinkOr = false;
 
 uint32_t	Gu32_Timestamp001 = 0;
+uint32_t	Gu32_Timestamp002 = 0;
 uint16_t	Gu16_BalThreshold = 4100; // Spannung ab der der pasive Ballancer auf jeden Fall aktiv werden muss
 uint8_t		Gu8_BalHysteresis = 100; // Differenz zu Gu16_BalThreshold ab der der pasive Ballancer wieder aus geht
 uint16_t	Gu16_BalUndervoltThreshold = 2800; // Spannung ab der der pasive Ballancer auf jeden Fall inaktiv werden muss
@@ -39,10 +41,10 @@ void setup() {
 	Communication.m_USART->begin(1200);// wuerde auch bis 4800 laufen
 	Communication.m_Console->begin(9600);// Debug Schnittstelle ueber SPI-Pins MISO=TX, MOSI=RX
 	Communication.m_Console->println();	
-	Communication.CheckSLA(digitalRead(slaR_Pin) == LOW);//Handling Slaveadresse (laden, lassen oder loeschen)
+	Communication.CheckSLA(1);//digitalRead(slaR_Pin) == LOW);//Handling Slaveadresse (laden, lassen oder loeschen)
 	Communication.m_Console->println("Cell Monitor boot completed");
 	
-	watchdogOn(); // Watchdog timer einschalten zum aufwachen aus dem sleepmode
+	watchdogOn(1); // Watchdog timer einschalten zum aufwachen aus dem sleepmode
 	digitalWrite(green, HIGH);
 }
 
@@ -58,22 +60,39 @@ void loop()
 	
 	switch(Instruction)
 	{
-		case 0x10:
+		case ARE_U_THERE:
+		{// Der Master fragt einzig die Anwesenheit des Slave ab
+			console.println("ARE_U_THERE ping received");
+			break;
+		}
+		case BLINK_ON:
+		{// Der Master fragt einzig die Anwesenheit des Slave ab
+			Gb_BlinkOr = true;
+			console.println("BLINK_ON received");
+			break;
+		}
+		case BLINK_OFF:
+		{// Der Master fragt einzig die Anwesenheit des Slave ab
+			Gb_BlinkOr = false;
+			console.println("BLINK_OFF received");
+			break;
+		}
+		case SET_SLA:
 		{// Eine neue Slaveadresse setzen
 			Communication.ChangeSLA(Data_A4[0]);
 			break;
 		}
-		case 0x11:
+		case SLEEP:
 		{// Sleep Modus
 			Sleep(Data_A4[0]);
 			break;
 		}
-		case 0x20:
+		case PASS_BALL_ON:
 		{// Passives Ballancing aktivieren
 			Gb_ExtBalControl = true;
 			break;
 		}
-		case 0x21:
+		case PASS_BALL_OFF:
 		{// Passives Ballancing deaktivieren
 			Gb_ExtBalControl = false;
 			Ballance(false);
@@ -81,7 +100,7 @@ void loop()
 			console.println(readVcc());
 			break;
 		}
-		case 0x22:
+		case ACT_BALL_ON:
 		{// aktives Ballancing aktivieren
 			digitalWrite(Bal_active, HIGH);
 			digitalWrite(orange, HIGH);
@@ -89,7 +108,7 @@ void loop()
 			console.println("Charge on");
 			break;
 		}
-		case 0x23:
+		case ACT_BALL_OFF:
 		{// aktives Ballancing deaktivieren
 			digitalWrite(Bal_active, LOW);
 			digitalWrite(orange, LOW);
@@ -97,22 +116,39 @@ void loop()
 			console.println("Charge off");
 			break;
 		}
-		case 0x24:
+		case SEND_VOLT:
 		{// die Zellspannung zum Master senden
 			delay(100);
 			console.println(readVcc());
 			break;
 		}
-		case 0x25:
-		{// die Temperatur zum Master senden
+		case SEND_INT_TEMP:
+		{// die Chip-Temperatur zum Master senden
 			delay(100);
 			console.println(u32_Temprature);
+			break;
+		}
+		case SEND_STATUS:
+		{// Der Master fragt einzig die Anwesenheit des Slave ab
+			console.println("SEND_STATUS received");
 			break;
 		}
 	};
 	
 	CheckForBallance();
 	CheckForTemprature();
+	if(Gb_BlinkOr)
+	{
+		if(millis() > Gu32_Timestamp002)
+		{
+			digitalWrite(orange, !digitalRead(orange));
+			Gu32_Timestamp002 = 500 + millis();
+		}
+	}
+	else
+	{
+		digitalWrite(orange, digitalRead(Bal_active));
+	}
 }
 
 long readVcc()// Misst die Spannung (VCC) in mV
@@ -265,6 +301,27 @@ void Sleep(uint8_t Seconds)
 	
 		console.println("leave sleep mode");
 	}
+}
+
+void watchdogOn(uint8_t Seconds)
+{
+	uint8_t reg = (1 << WDP0) | (1 << WDP3);// Standard 8 Sekunden
+	
+	if(Seconds == 1)
+	reg = (1 << WDP1) | (1 << WDP2);
+	if(Seconds == 2)
+	reg = (1 << WDP0) | (1 << WDP1) | (1 << WDP2);
+	if(Seconds == 4)
+	reg = (1 << WDP3);
+	if(Seconds == 8)
+	reg = (1 << WDP0) | (1 << WDP3);
+	
+	
+	MCUSR &= ~(1 << WDRF);
+	WDTCSR |= (1 << WDCE) | (1 << WDE);
+	WDTCSR = reg;
+	WDTCSR |= (1 << WDIE);
+	MCUSR &= ~(1 << WDRF);
 }
 
 ISR(WDT_vect) {

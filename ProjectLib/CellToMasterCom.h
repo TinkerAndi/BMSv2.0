@@ -67,6 +67,24 @@ Zwischen den einzelnen Datagrammen vom Master an die Slaves muss ein Timeout von
 #include <EEPROM.h>
 #include "SoftwareSerial.h"
 
+// Kommandos die der Slave versteht
+#define BEGINN 0// !kein Kommando zum senden! 0 bedeutet, dass der Slave von vorn beginnen muss mit der Befehlskette
+//Befehle die der Slave nur ausfuehrt
+#define ARE_U_THERE 0x01
+#define SET_SLA 0x10
+#define SLEEP 0x11
+#define PASS_BALL_ON 0x20
+#define PASS_BALL_OFF 0x21
+#define ACT_BALL_ON 0x22
+#define ACT_BALL_OFF 0x23
+#define BLINK_ON 0x28
+#define BLINK_OFF 0x29
+// Befehle auf die der Slave mit Daten antwortet
+#define SEND_VOLT 0x24
+#define SEND_INT_TEMP 0x25
+#define SEND_EXT_TEMP 0x26
+#define SEND_STATUS 0x27
+
 
 class CellToMasterCom
 {
@@ -329,7 +347,7 @@ int8_t CellToMasterCom::ACK(int8_t ErrorCode)
 	{
 		UCSR0B |= (1<<TXEN0);
 		// delay(15);
-		m_Console->print("Send ACK = 0x");
+		m_Console->print("Send new ACK = 0x");
 		m_Console->print('A', HEX);
 		m_USART->write('A');
 		// delay(15);
@@ -342,9 +360,13 @@ int8_t CellToMasterCom::ACK(int8_t ErrorCode)
 		m_USART->write(*mp_SLA);
 		// delay(15);
 		m_Console->print(" 0x");
-		m_Console->println(ErrorCode, HEX);
+		m_Console->print(ErrorCode);
 		m_USART->write(ErrorCode);
 		// delay(15);
+		m_Console->print(" 0x");
+		m_Console->println('A', HEX);
+		m_USART->write('A');
+		delay(100);
 		UCSR0B &= ~(1<<TXEN0);
 	}
 }
@@ -369,8 +391,8 @@ int8_t CellToMasterCom::CheckACK(uint8_t SLA)
 	{
 		received = m_USART->read();
 		delay(30);
-		m_Console->print("ACK rec 0x");
-		m_Console->println(received, HEX);
+		// m_Console->print("ACK rec: 0x");
+		// m_Console->println(received, HEX);
 		if(received == '@')
 		{
 			break;
@@ -381,33 +403,33 @@ int8_t CellToMasterCom::CheckACK(uint8_t SLA)
 	delay(30);
 	if(received != SLA)
 	{
-		m_Console->print("ACK error wrong SLA - ");
-		m_Console->println(received, HEX);
+		// m_Console->print("ACK error wrong SLA: ");
+		// m_Console->println(received, HEX);
 		return -4;
 	}
 	else
 	{
-		m_Console->print("ACK SLA - ");
-		m_Console->println(received, HEX);
+		// m_Console->print("ACK SLA: ");
+		// m_Console->println(received, HEX);
 	}
 	Timestamp = millis();
 	while(!m_USART->available())
 	{
 		if(Timestamp+200 < millis())
 		{
-			return -3;
+			return -7;
 		}
 	}
 	received = m_USART->read();
-	// delay(30);
+	delay(30);
 
-	// while(m_USART->available())
-	// {//Restmuell abholen
-		// m_USART->read();
-		// delay(30);
-	// }
-	m_Console->print("ACK errorcode - ");
-	m_Console->println(received, HEX);
+	while(m_USART->available() && m_USART->peek() != '@')
+	{//Restmuell abholen bis zum beginn einer neuen Nachricht ('@')
+		m_USART->read();
+		delay(30);
+	}
+	// m_Console->print("ACK errorcode: ");
+	// m_Console->println(received);
 	
 	return received;
 }
@@ -428,6 +450,8 @@ void CellToMasterCom::Arbitration()
 #endif // CellToMasterCom_h
 /*
 Fehlercodes:
+		-7	: Timeout ACK unvollstaendig empfangen
+
 		-6	: Funktion nur auf einem Slave-Device unterstuetzt
 		
 		-5	: Funktion nur auf einem Master-Device unterstuetzt
