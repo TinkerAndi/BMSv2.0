@@ -109,6 +109,7 @@ public:
 	// int8_t SlaveReceive(uint8_t Command, uint32_t* u32_Data);
 	int8_t ChangeSLA(uint8_t newSLA);
 	int8_t CheckSLA(bool erase);
+	uint8_t GetSLA();
 	int8_t ACK(int8_t ErrorCode);
 	int8_t CheckACK(uint8_t SLA);
 	uint8_t CheckAvailable();
@@ -334,6 +335,11 @@ int8_t CellToMasterCom::CheckSLA(bool erase)
 		}
 	}
 	
+}
+
+uint8_t CellToMasterCom::GetSLA()
+{
+	return *mp_SLA;
 }
 
 int8_t CellToMasterCom::ACK(int8_t ErrorCode)

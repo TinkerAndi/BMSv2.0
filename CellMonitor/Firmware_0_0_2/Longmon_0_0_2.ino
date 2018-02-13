@@ -137,18 +137,34 @@ void loop()
 	
 	CheckForBallance();
 	CheckForTemprature();
-	if(Gb_BlinkOr)
+	Cyclic();
+}
+
+void Cyclic()
+{
+	if(millis() > Gu32_Timestamp002)
 	{
-		if(millis() > Gu32_Timestamp002)
+		Gu32_Timestamp002 = 500 + millis();
+		
+		if(Gb_BlinkOr)
 		{
 			digitalWrite(orange, !digitalRead(orange));
-			Gu32_Timestamp002 = 500 + millis();
+		}
+		else
+		{
+			digitalWrite(orange, digitalRead(Bal_active));
+		}
+		
+		if(Communication.GetSLA() == 0xFF)
+		{
+			digitalWrite(green, !digitalRead(green));
+		}
+		else
+		{
+			digitalWrite(green, HIGH);
 		}
 	}
-	else
-	{
-		digitalWrite(orange, digitalRead(Bal_active));
-	}
+	
 }
 
 long readVcc()// Misst die Spannung (VCC) in mV

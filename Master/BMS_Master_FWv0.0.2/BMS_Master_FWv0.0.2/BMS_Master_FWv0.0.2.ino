@@ -64,6 +64,7 @@ volatile bool cGb_UpdateClock = true;
 
 uint8_t Gu8_FSM_State = SELECT_SLAVE;
 uint8_t Gu8_ActiveSlave = 0;
+bool Gb_LastCommand = false;
 bool Gb_SlTableFull = false;
 
 void setup()
@@ -222,7 +223,7 @@ void loop()
 			{
 				Display.WriteTextElement("Slave_Conf", "t"+String(i+13), String(Slave[i].S_Address));//t14 bis t20
 				Display.WriteNumElement("Slave_Conf", "n"+String(i-1), Slave[i].CellNumber);
-				String status;//Es existieren die Stati sleeping (wenn das Sleepdelay nicht 0 ist), absent (wenn die Slaveadresse 0 ist), failure und Ok
+				String status;//Es existieren die Status sleeping (wenn das Sleepdelay nicht 0 ist), absent (wenn die Slaveadresse 0 ist), failure und Ok
 				if(Slave[i].S_Address == 0)
 				{
 					status = "absent";
@@ -302,8 +303,8 @@ void FSM_Communication()
 			else
 			{//Ist der Slave wach geht es mit ihm weiter
 				Gu8_FSM_State = SELECT_COMMAND;
+				Logg.Logging(LEVEL_DEBUG, "SELECT_SLAVE SlaveNo", Gu8_ActiveSlave);
 			}
-			Logg.Logging(LEVEL_DEBUG, "SELECT_SLAVE", Gu8_ActiveSlave);
 			break;
 		}
 		case SELECT_COMMAND:
@@ -311,12 +312,13 @@ void FSM_Communication()
 			if(Gu8_ActiveSlave == 0)
 			{
 				Slave[Gu8_ActiveSlave].SendCommand = ARE_U_THERE;
-				Logg.Logging(LEVEL_DEBUG, "SELECT_COMMAND", Slave[Gu8_ActiveSlave].SendCommand, HEX);
+				Logg.Logging(LEVEL_DEBUG, "SELECT_COMMAND CommandNo", Slave[Gu8_ActiveSlave].SendCommand, HEX);
 			}
 			else
 			{
 					Slave[Gu8_ActiveSlave].SendCommand = BLINK_ON;
-					Logg.Logging(LEVEL_DEBUG, "SELECT_COMMAND", Slave[Gu8_ActiveSlave].SendCommand, HEX);
+					Gb_LastCommand = true;
+					Logg.Logging(LEVEL_DEBUG, "SELECT_COMMAND CommandNo", Slave[Gu8_ActiveSlave].SendCommand, HEX);
 //hier kommt noch eine richtige Befehlsauswahl
 			}
 			Gu8_FSM_State = SEND_COMMAND;
@@ -326,9 +328,9 @@ void FSM_Communication()
 		{
 			Communication.MasterOrder(Slave[Gu8_ActiveSlave].S_Address, Slave[Gu8_ActiveSlave].SendCommand, Slave[Gu8_ActiveSlave].SendData[0], Slave[Gu8_ActiveSlave].SendData[1], Slave[Gu8_ActiveSlave].SendData[2], Slave[Gu8_ActiveSlave].SendData[3]);
 			Slave[Gu8_ActiveSlave].Timeout= millis() + 500;
-			Logg.Logging(LEVEL_DEBUG, "Sent Command to Slave", Gu8_ActiveSlave);
-			Logg.Logging(LEVEL_DEBUG, "Command", Slave[Gu8_ActiveSlave].SendCommand, HEX);
-			Logg.Logging(LEVEL_DEBUG, "Slaveadress", Slave[Gu8_ActiveSlave].S_Address, HEX);
+			Logg.Logging(LEVEL_DEBUG, "SEND_COMMAND SlaveNo", Gu8_ActiveSlave);
+			Logg.Logging(LEVEL_DEBUG, "SEND_COMMAND CommandNo", Slave[Gu8_ActiveSlave].SendCommand, HEX);
+			Logg.Logging(LEVEL_DEBUG, "SEND_COMMAND Slaveadress", Slave[Gu8_ActiveSlave].S_Address, HEX);
 			Gu8_FSM_State = WAIT_FOR_ACK;
 			break;
 		}
@@ -337,6 +339,7 @@ void FSM_Communication()
 			int32_t Val = 0;
 			if(Communication.CheckAvailable() > 2)
 			{//Die Anzahl der im Puffer befindlichen Bytes checken ein ACK besteht aus drei Byte erst wenn mindestens so viele im Puffer liegen werden sie abgeholt und interpretiert
+				Logg.Logging(LEVEL_DEBUG, "WAIT_FOR_ACK at SLA", Slave[Gu8_ActiveSlave].S_Address, HEX);
 				Val = Communication.CheckACK(Slave[Gu8_ActiveSlave].S_Address);
 				
 				if (Val == 1)
@@ -350,7 +353,7 @@ void FSM_Communication()
 					{// erfolgt ein ACK von dieser SLA und ist es die Antwort auf ARE_U_THERE, handelt es sich um einen neuen Slave
 						if(!Gb_SlTableFull)
 						{// ist die Slavetabelle bisher noch nicht als voll gekennzeichnet worden, kann der neue Slave eingetragen werden
-							Logg.Logging(LEVEL_FSM, "ACK from new Slave received");
+							Logg.Logging(LEVEL_FSM, "WAIT_FOR_ACK ACK from new Slave received");
 							Gu8_FSM_State = NEW_S_DETECTED;
 						}
 						else
@@ -361,14 +364,24 @@ void FSM_Communication()
 					}
 					else if(Slave[Gu8_ActiveSlave].S_Address == 0xFF && Slave[Gu8_ActiveSlave].SendCommand == SET_SLA)
 					{// wenn das ACK auf SET_SLA erfolgt, muss die SLA in der Slavetabelle angepasst werden
-						Logg.Logging(LEVEL_FSM, "Write new SLA to Slavetable", Gu8_ActiveSlave, HEX);
+						Logg.Logging(LEVEL_FSM, "WAIT_FOR_ACK Write new SLA to Slavetable", Gu8_ActiveSlave, HEX);
 						Slave[Gu8_ActiveSlave].S_Address = Gu8_ActiveSlave;
 						Gu8_FSM_State = SELECT_COMMAND;
 					}
 					else
-					{// in allen anderen Faellen, kann der naechse Befehl gesendet werden
-						Logg.Logging(LEVEL_DEBUG, "WAIT_FOR_ACK successful next is SELECT_COMMAND");
-						Gu8_FSM_State = SELECT_COMMAND;
+					{// in allen anderen Faellen, 
+						if(Gb_LastCommand)
+						{// kann der naechste Slave dran kommen
+							Gb_LastCommand = false;
+							Slave[Gu8_ActiveSlave].SleepDelay = 20;
+							Logg.Logging(LEVEL_DEBUG, "WAIT_FOR_ACK successful next is SELECT_SLAVE");
+							Gu8_FSM_State = SELECT_SLAVE;
+						}
+						else
+						{// oder der naechse Befehl gesendet werden
+							Logg.Logging(LEVEL_DEBUG, "WAIT_FOR_ACK successful next is SELECT_COMMAND");
+							Gu8_FSM_State = SELECT_COMMAND;
+						}
 					}
 					
 					if(Slave[Gu8_ActiveSlave].S_Address != 0xFF && Slave[Gu8_ActiveSlave].ErrorCounter > 0)
@@ -378,8 +391,8 @@ void FSM_Communication()
 				}
 				else
 				{// liegt ein Fehlercode vor wird dieser protokolliert 
-					Logg.Logging(LEVEL_ERROR, "ACK Error at Slaveadress", Slave[Gu8_ActiveSlave].S_Address, HEX);
-					Logg.Logging(LEVEL_ERROR, "ACK Error-Code", Val);
+					Logg.Logging(LEVEL_ERROR, "WAIT_FOR_ACK ACK Error at Slaveadress", Slave[Gu8_ActiveSlave].S_Address, HEX);
+					Logg.Logging(LEVEL_ERROR, "WAIT_FOR_ACK ACK Error-Code", Val);
 					
 					if(Slave[Gu8_ActiveSlave].S_Address != 0xFF && Slave[Gu8_ActiveSlave].ErrorCounter < 190)
 					{// der Fehlercounter wird nur fuer bekannte Slaves gezaehlt und soll 200 nicht ueberschreiten
@@ -393,18 +406,21 @@ void FSM_Communication()
 			{
 				if(Gu8_ActiveSlave == 0)
 				{// Beim Suchen nach neuen Mitarbeitern darf schon mal ein Timeout auftreten
+					Logg.Logging(LEVEL_DEBUG, "WAIT_FOR_ACK No new Slave present");
+					Slave[Gu8_ActiveSlave].SleepDelay = 30;
+					Gu8_FSM_State = SELECT_SLAVE;
 				}
 				else
 				{// kommt von eingestelleten Mitarbeitern keine Antwort, wird hier ein timeout error protokolliert
-					Logg.Logging(LEVEL_ERROR, "ACK receiving Timeout at SlavetableNo", Gu8_ActiveSlave);
-					Logg.Logging(LEVEL_ERROR, "ACK receiving Timeout at Slaveadress", Slave[Gu8_ActiveSlave].S_Address, HEX);
+					Logg.Logging(LEVEL_ERROR, "WAIT_FOR_ACK ACK receiving Timeout at SlavetableNo", Gu8_ActiveSlave);
+					Logg.Logging(LEVEL_ERROR, "WAIT_FOR_ACK ACK receiving Timeout at Slaveadress", Slave[Gu8_ActiveSlave].S_Address, HEX);
 					if(Gu8_ActiveSlave != 0 && Slave[Gu8_ActiveSlave].ErrorCounter < 190)
 					{// der Fehlercounter wird nur fuer bekannte Slaves gezaehlt und soll 200 nicht ueberschreiten
 						Slave[Gu8_ActiveSlave].ErrorCounter += 10;
+					}
+					Slave[Gu8_ActiveSlave].SleepDelay = 20;
+					Gu8_FSM_State = SELECT_SLAVE;// es wird erstmal mit allen anderen Slaves kommuniziert so, dass dieser Slave ein wenig Zeit bekommt
 				}
-				Slave[Gu8_ActiveSlave].SleepDelay = 20;
-				Gu8_FSM_State = SELECT_SLAVE;// es wird erstmal mit allen anderen Slaves kommuniziert so, dass dieser Slave ein wenig Zeit bekommt
-			}
 			}
 			break;
 		}
@@ -420,7 +436,7 @@ void FSM_Communication()
 				}
 				if(i == cGu8_Slaves-1)
 				{// wenn auch der Letzte Platz besetzt ist
-					Logg.Logging(LEVEL_ERROR, "Slavetable full no new Slave allowed", i);
+					Logg.Logging(LEVEL_ERROR, "NEW_S_DETECTED Slavetable full no new Slave allowed", i);
 					Gb_SlTableFull = true;
 					break;
 				}
@@ -433,7 +449,7 @@ void FSM_Communication()
 				Slave[FreeSlot].SendData[0] = FreeSlot;
 				Gu8_ActiveSlave = FreeSlot;
 				Gu8_FSM_State = SEND_COMMAND;
-				Logg.Logging(LEVEL_FSM, "Slave added to Slavetable at", FreeSlot);
+				Logg.Logging(LEVEL_FSM, "NEW_S_DETECTED Slave added to Slavetable at", FreeSlot);
 			}
 			else
 			{
