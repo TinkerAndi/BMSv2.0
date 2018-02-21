@@ -455,6 +455,7 @@ void CellToMasterCom::Arbitration()
 
 #endif // CellToMasterCom_h
 /*
+Benutzt werden Codes zwischen -20 und 20 alle anderen sind reserviert fuer andere Kassen oder das Hauptprogramm
 Fehlercodes:
 		-7	: Timeout ACK unvollstaendig empfangen
 

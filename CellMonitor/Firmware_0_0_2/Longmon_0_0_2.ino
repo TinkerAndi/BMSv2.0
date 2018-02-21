@@ -39,9 +39,10 @@ void setup() {
 	pinMode(bal_passive, OUTPUT);// Widerstandsarray
 		
 	Communication.m_USART->begin(1200);// wuerde auch bis 4800 laufen
+	UCSR0B &= ~(1<<TXEN0);//TX auf Low - Die UART haellt den TX-Pin im idle auf High das darf so nicht sein, weil andere Slaves dann nicht senden koennen
 	Communication.m_Console->begin(9600);// Debug Schnittstelle ueber SPI-Pins MISO=TX, MOSI=RX
 	Communication.m_Console->println();	
-	Communication.CheckSLA(1);//digitalRead(slaR_Pin) == LOW);//Handling Slaveadresse (laden, lassen oder loeschen)
+	Communication.CheckSLA(digitalRead(slaR_Pin) == LOW);//Handling Slaveadresse (laden, lassen oder loeschen)
 	Communication.m_Console->println("Cell Monitor boot completed");
 	
 	watchdogOn(1); // Watchdog timer einschalten zum aufwachen aus dem sleepmode

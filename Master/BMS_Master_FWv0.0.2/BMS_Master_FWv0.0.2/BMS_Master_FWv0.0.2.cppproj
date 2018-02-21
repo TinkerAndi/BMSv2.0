@@ -96,12 +96,11 @@
   <avrgcc.compiler.directories.IncludePaths>
     <ListValues>
       <Value>../../../BMS_Master_FWv0.0.2</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/EEPROM/src</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/SPI/src</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/libraries/SD/src</Value>
-      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/EEPROM/src</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/SoftwareSerial/src</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/Wire/src</Value>
-      <Value>C:/Programme(andi)/arduino-1.8.5/libraries/SD/src/utility</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/Wire/src/utility</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/libraries</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries</Value>
@@ -139,12 +138,11 @@
   <avrgcccpp.compiler.directories.IncludePaths>
     <ListValues>
       <Value>../../../BMS_Master_FWv0.0.2</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/EEPROM/src</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/SPI/src</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/libraries/SD/src</Value>
-      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/EEPROM/src</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/SoftwareSerial/src</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/Wire/src</Value>
-      <Value>C:/Programme(andi)/arduino-1.8.5/libraries/SD/src/utility</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/Wire/src/utility</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/libraries</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries</Value>
@@ -491,12 +489,11 @@ build.arch=AVR
   <avrgcc.compiler.directories.IncludePaths>
     <ListValues>
       <Value>../../../BMS_Master_FWv0.0.2</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/EEPROM/src</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/SPI/src</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/libraries/SD/src</Value>
-      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/EEPROM/src</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/SoftwareSerial/src</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/Wire/src</Value>
-      <Value>C:/Programme(andi)/arduino-1.8.5/libraries/SD/src/utility</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/Wire/src/utility</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/libraries</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries</Value>
@@ -534,12 +531,11 @@ build.arch=AVR
   <avrgcccpp.compiler.directories.IncludePaths>
     <ListValues>
       <Value>../../../BMS_Master_FWv0.0.2</Value>
+      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/EEPROM/src</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/SPI/src</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/libraries/SD/src</Value>
-      <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/EEPROM/src</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/SoftwareSerial/src</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/Wire/src</Value>
-      <Value>C:/Programme(andi)/arduino-1.8.5/libraries/SD/src/utility</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries/Wire/src/utility</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/libraries</Value>
       <Value>C:/Programme(andi)/arduino-1.8.5/hardware/arduino/avr/libraries</Value>
