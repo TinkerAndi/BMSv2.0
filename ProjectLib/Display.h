@@ -64,16 +64,16 @@ uint32_t DisplayClass::CheckIncome()
 			Data[k] = 0;
 		}
 		
-		// mp_Console->print("Nextion Says: ");
+		//mp_Console->print("Nextion Says: ");
 		while(mp_Display->available())
 		{
-			uint8_t income = mp_Display->read();
-			// mp_Console->print(income, HEX);
-			// mp_Console->print(" ");
+			uint32_t income = mp_Display->read();
+			//mp_Console->print(income, HEX);
+			//mp_Console->print(" ");
 			if(i<4)
 			{
 				retVal += income << 8*i;
-				
+				//mp_Console->println(retVal, HEX);
 			}
 			else if(i < 44)
 			{
@@ -86,17 +86,17 @@ uint32_t DisplayClass::CheckIncome()
 			delay(1);
 			i++;
 		}
-		// mp_Console->println();
-		
-		// mp_Console->print("Command: ");
-		// mp_Console->print(retVal, HEX);
-		// mp_Console->print(" Data: ");
-		// for(uint8_t j = 0; j < 10; j++)
-		// {
-			// mp_Console->print(Data[j], HEX);
-			// mp_Console->print(" ");
-		// }
-		// mp_Console->println();
+		//mp_Console->println();
+		//
+		//mp_Console->print("Command: ");
+		//mp_Console->print(retVal, HEX);
+		//mp_Console->print(" Data: ");
+		 //for(uint8_t j = 0; j < 10; j++)
+		 //{
+			 //mp_Console->print(Data[j], HEX);
+			 //mp_Console->print(" ");
+		 //}
+		 //mp_Console->println();
 	}
 	return retVal;
 }

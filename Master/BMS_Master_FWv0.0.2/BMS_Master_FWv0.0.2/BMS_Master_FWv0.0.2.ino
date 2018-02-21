@@ -7,7 +7,7 @@
 #define NEW_S_DETECTED 6
 
 #include "Arduino.h"
-//#include "EEPROM.h"
+#include <EEPROM.h>
 #include "Display.h"
 #include "Crc16.h"
 #include "CellToMasterCom.h"
@@ -27,19 +27,23 @@ class Slavetable
 	public:
 	Slavetable()
 	{}
+	//permanent zu speichernde Daten der Slavetabelle
 	uint8_t CellNumber = 0;// The number of the cell this slave is assigned to
 	uint8_t S_Address = 0;// The Slave adress this slave is listening to
-	uint8_t SleepDelay = 0;// The time in seconds this slve will sleep after the last sleep command
+	
+	//operativ benoetigte Daten der Slavetabelle
+	uint8_t SleepDelay = 0;// The time in seconds this slave will sleep after the last sleep command
 	uint32_t Timeout = 0;// The timestamp in milliseconds for reaction to any command
 	uint8_t ErrorCounter = 0;//Counts any issue in communication with this Slave Error = +10 every sucsessfully communication = -1
 	uint32_t SendCommand;// The Command which will send next time or was sent last time
 	uint32_t SendData[4];// The Data which will send next time or was sent last time
-	uint32_t RecivedCommand;// The Command which was received last time
+	//uint32_t RecivedCommand;// The Command which was received last time
 	uint32_t RecivedData[4];// The Data which was received last time
 	
+	//funktionell erhobene Daten vom Slave selbst
 	uint16_t Voltage;// The Voltage of the cell this slave is connected to
 	uint8_t CoreTemp;// The temprature of the controlers internal sensor indicates the temprature of passive ballancer circuit
-	uint8_t CellTemp;// The temprature of the external sensor directly mounted at the conectet cell
+	uint8_t CellTemp;// The temprature of the external sensor directly mounted at the conected cell
 	bool ActiveBallanceAvailable = false;// indicates whether or not active ballance circuit is connected
 	bool ActiveBallanceStatus = false;// indicates whether or not the active ballancer is active
 	bool PassBallanceStatus = false;// indicates whether or not the passive ballancer is active
@@ -47,8 +51,39 @@ class Slavetable
 	uint32_t ActiveBallanceTime = 0;// the time in seconds active ballancing was active since the Master was started or the counter was reset via the GUI
 	uint32_t PassBallanceTime = 0;// the time in seconds passive ballancing was active since the Master was started or the counter was reset via the GUI
 	
+	void SaveSLA(uint8_t SlavetableNo, uint8_t SLA)
+	{
+		S_Address = SLA;
+		eeprom_update_byte(mp_ST1stSLA + SlavetableNo, SLA);
+	}
+
+	void SaveCellNo(uint8_t SlavetableNo, uint8_t CellNo)
+	{
+		CellNumber = CellNo;
+		eeprom_update_byte(mp_ST1stCellNo + SlavetableNo, CellNo);
+	}
+	
+	bool Restore(uint8_t SlavetableNo)
+	{
+		uint8_t a = eeprom_read_byte(mp_ST1stSLA + SlavetableNo);
+		if(a > 0 && a < 0xFF)
+		{// wenn eine valide Slaveadresse im EEPROM steht wird diese genommen
+			S_Address = a;
+			CellNumber = eeprom_read_byte(mp_ST1stCellNo + SlavetableNo);
+			return true;
+		}
+		return false;
+	}
+	
+	void Destroy(uint8_t SlavetableNo)
+	{
+		S_Address = 0;
+		eeprom_update_byte(mp_ST1stSLA + SlavetableNo, 0);
+	}
 	
 	private:
+	const uint8_t* mp_ST1stSLA = 100;
+	const uint8_t* mp_ST1stCellNo = 200;
 }
 Slave[cGu8_Slaves+1];//Die Slavetabelle hat an der stelle 0 einen dummy um neue slaves zu finden die Slaves 1..20 entsprechen auch den Arrayindikatoren 1..20
 
@@ -64,6 +99,7 @@ volatile bool cGb_UpdateClock = true;
 
 uint8_t Gu8_FSM_State = SELECT_SLAVE;
 uint8_t Gu8_ActiveSlave = 0;
+bool Gb_LastCommand = false;
 bool Gb_SlTableFull = false;
 
 void setup()
@@ -108,6 +144,7 @@ void setup()
 	Slave[0].S_Address = 0xFF;// einen slave-0 mit Adresse FF fuer die permanente Suche nach neuen Slaves
 	
 	Display.sdReady(Logg.SdPresent());
+	RestoreSlavetable();
 }
 
 void loop()
@@ -115,10 +152,10 @@ void loop()
 	wdt_reset();
 	RTC_read(&cGb_UpdateClock);
 	uint32_t DispIncoming = Display.CheckIncome();
-	uint8_t DispCommand = DispIncoming&0x000000FF;
-	uint8_t DispData1 = (DispIncoming>>8)&0x000000FF;
-	uint8_t DispData2 = (DispIncoming>>16)&0x000000FF;
-	uint8_t DispData3 = (DispIncoming>>24)&0x000000FF;
+	uint8_t DispCommand = DispIncoming & 0x000000FF;
+	uint8_t DispData1 = (DispIncoming>>8) & 0x000000FF;
+	uint8_t DispData2 = (DispIncoming>>16) & 0x000000FF;
+	uint8_t DispData3 = (DispIncoming>>24) & 0x000000FF;
 	
 	if(DispIncoming != 0 && DispIncoming != 0xFF)
 	{
@@ -217,30 +254,22 @@ void loop()
 		}
 		case 0xA6:
 		{// Initialisiert die Seite Slave_Conf mit Daten aus der Slavetabelle
-			Logg.Logging(LEVEL_FSM, "Slave Config Seite aktualisieen");;
-			for(uint8_t i = 1; i < 8; i++)
-			{
-				Display.WriteTextElement("Slave_Conf", "t"+String(i+13), String(Slave[i].S_Address));//t14 bis t20
-				Display.WriteNumElement("Slave_Conf", "n"+String(i-1), Slave[i].CellNumber);
-				String status;//Es existieren die Stati sleeping (wenn das Sleepdelay nicht 0 ist), absent (wenn die Slaveadresse 0 ist), failure und Ok
-				if(Slave[i].S_Address == 0)
-				{
-					status = "absent";
-				}
-				else if(Slave[i].SleepDelay != 0)
-				{
-					status = "sleeping";
-				}
-				else
-				{
-					status = "Ok";
-				}
-				Display.WriteTextElement("Slave_Conf", "t"+String(i+6), status);//t7 bis t13
-			}
+			Logg.Logging(LEVEL_FSM, "Slave Config Seite aktualisieen");
+			UpdateDispSlTable();
 			break;
 		}
 		case 0xC1:
 		{// laesst den angesprochenen Slave zur identifikation mit einer LED blinken
+			
+			if(DispData1 == 1)
+			{
+				Communication.MasterOrder(Slave[DispData2].S_Address, BLINK_ON);
+			}
+			else
+			{
+				Communication.MasterOrder(Slave[DispData2].S_Address, BLINK_OFF);
+			}
+			int8_t Ec1 = Communication.CheckACK(Slave[DispData2].S_Address);
 			Logg.Logging(LEVEL_FSM, "Identification blink Slave", DispData2);
 			Logg.Logging(LEVEL_FSM, "On / Off", DispData1);
 			break;
@@ -248,7 +277,31 @@ void loop()
 		case 0xC2:
 		{// Setzt eine zuordnung des Slave zur Zelle (Zellnummer)
 			Logg.Logging(LEVEL_FSM, "Set Cell Number to Slave", DispData2);
-			Logg.Logging(LEVEL_FSM, "New Cell number", DispData1);
+			Slave[DispData2].SaveCellNo(DispData2, DispData1);// 
+			Logg.Logging(LEVEL_FSM, "New Cell number", Slave[DispData2].CellNumber);
+			UpdateDispSlTable();
+			break;
+		}
+		case 0xC3:
+		{// Sucht nach neuen Slaves
+			Display.WriteTextElement("Slave_Conf", "t1", "Searching");
+			int8_t ret = SearchNewSlave();
+			if(ret == 1)
+			{
+				Display.WriteTextElement("Slave_Conf", "t1", "found new slave");
+			}
+			else
+			{
+				Display.WriteTextElement("Slave_Conf", "t1", "no new Slave");
+			}
+			UpdateDispSlTable();
+			break;
+		}
+		case 0xC4:
+		{// Loescht die Slavetabelle
+			Display.WriteTextElement("Slave_Conf", "t1", "Slavetable clear");
+			ClearSlavetable();
+			UpdateDispSlTable();
 			break;
 		}
 		case 0xFF:
@@ -268,13 +321,114 @@ void loop()
 	
 	
 	
-	FSM_Communication();
+//	FSM_Communication();
 	
 	if(Gb_UpdateDisp)
 	{
 		Gb_UpdateDisp = false;
 		Display.WriteMaintime(Now);
 		Logg.CheckFileSize();
+	}
+}
+
+int8_t SearchNewSlave()
+{// Sucht neue Slave Controller (Zellmonitore) und nimmt sie in die Slavetabelle auf
+	Logg.Logging(LEVEL_FSM, "BEGINN of SearchNewSlave()");
+	Slave[0].SendCommand = ARE_U_THERE;
+	Communication.MasterOrder(Slave[0].S_Address, Slave[0].SendCommand);
+	Logg.Logging(LEVEL_DEBUG, "sending ARE_U_THERE", Slave[0].SendCommand, HEX);
+	int8_t Ec1 = Communication.CheckACK(Slave[0].S_Address);
+	if (Ec1 == 1)
+	{// Bei Erfolg geht es hier weiter
+		Logg.Logging(LEVEL_DEBUG, "found a new Slave");
+		
+		
+		uint8_t FreeSlot;
+		for(uint8_t i = 1; i < cGu8_Slaves; i++)
+		{// sucht in der Slavetabelle dem ersten freien Platz 0 wird ausgelassen
+			if(Slave[i].S_Address == 0 || Slave[i].S_Address == 0xFF)
+			{// erkennt den ersten freien Platz in der Slavetabelle
+				FreeSlot = i;
+				break;
+			}
+			if(i == cGu8_Slaves-1)
+			{// wenn auch der Letzte Platz der Slavetabelle besetzt ist
+				Gb_SlTableFull = true;
+				break;
+			}
+		}
+		if(!Gb_SlTableFull)
+		{// Wenn ein freier Platz vorhanden ist
+			uint8_t NewSLA = 0xA0 + FreeSlot;
+			Communication.MasterOrder(Slave[0].S_Address, SET_SLA, NewSLA);
+			Logg.Logging(LEVEL_DEBUG, "Send Command SET_SLA to", NewSLA, HEX);
+			int8_t Ec2 = Communication.CheckACK(Slave[0].S_Address);
+			
+			if(Ec2 == 1)
+			{//Wenn das Setzen der neuen SLA erfolgreich war
+				Logg.Logging(LEVEL_DEBUG, "Programming new SLA successful", NewSLA, HEX);
+				Communication.MasterOrder(NewSLA, ARE_U_THERE);//Schau ob der Slave auf die neue Adresse reagiert
+				int8_t Ec3 = Communication.CheckACK(NewSLA);
+				
+				if(Ec3 == 1)
+				{//aufnehmen des neuen Slve in die Slavetabelle
+					Logg.Logging(LEVEL_DEBUG, "Slave respond to new Adress successful");
+					
+					Slave[FreeSlot].SaveSLA(FreeSlot, NewSLA);// neue Slaveadresse in Slavetabelle aufnehmen
+					Slave[FreeSlot].SaveCellNo(FreeSlot, 0);// neue Slaves sind erstmal keiner Zelle zugeordnet
+					
+					Logg.Logging(LEVEL_MAIN, "Slave added to Slavetable at", FreeSlot);
+				}
+				else
+				{
+					Logg.Logging(LEVEL_ERROR, "CheckACK of nwew SLA ARE_U_THERE returns error", (int32_t)Ec3);
+					return -21;
+				}
+			}
+			else
+			{
+				Logg.Logging(LEVEL_ERROR, "CheckACK of SET_SLA returns error", (int32_t)Ec2);
+				return -21;
+			}
+		}
+		else
+		{
+			Logg.Logging(LEVEL_ERROR, "Slavetable full no new Slave allowed");
+			return -20;
+		}
+	}
+	else if(Ec1 == -3)
+	{
+		Logg.Logging(LEVEL_DEBUG, "did not find a new Slave");
+		return 0;
+	}
+	else
+	{
+		Logg.Logging(LEVEL_ERROR, "CheckACK of ARE_U_THERE returns error", (int32_t)Ec1);
+		return -21;
+	}
+	
+	return 1;
+}
+
+int8_t RestoreSlavetable()
+{
+	Logg.Logging(LEVEL_FSM, "BEGINN of RestoreSlavetable()");
+	for(uint8_t i = 1; i < cGu8_Slaves; i++)
+	{
+		if(Slave[i].Restore(i))
+		{
+			Logg.Logging(LEVEL_INFO, "Slave restored to Slavetable at", i);
+		}
+	}
+}
+
+int8_t ClearSlavetable()
+{
+	Logg.Logging(LEVEL_FSM, "BEGINN of ClearSlavetable()");
+	for(uint8_t i = 1; i < cGu8_Slaves; i++)
+	{
+		Slave[i].Destroy(i);
 	}
 }
 
@@ -297,13 +451,14 @@ void FSM_Communication()
 				if(Slave[Gu8_ActiveSlave].S_Address == 0)
 				{// Falls an diesm punkt der Tabelle gar kein slave mehr drinn steht
 					Gu8_ActiveSlave = 0;// wieder von vorn beginnen
+					//Slave[Gu8_ActiveSlave].RestoreSLA(Gu8_ActiveSlave);// im EEPROM schauen, ob der Slave schon eine Adresse hat
 				}
 			}
 			else
 			{//Ist der Slave wach geht es mit ihm weiter
 				Gu8_FSM_State = SELECT_COMMAND;
+				Logg.Logging(LEVEL_DEBUG, "SELECT_SLAVE SlaveNo", Gu8_ActiveSlave);
 			}
-			Logg.Logging(LEVEL_DEBUG, "SELECT_SLAVE", Gu8_ActiveSlave);
 			break;
 		}
 		case SELECT_COMMAND:
@@ -311,12 +466,13 @@ void FSM_Communication()
 			if(Gu8_ActiveSlave == 0)
 			{
 				Slave[Gu8_ActiveSlave].SendCommand = ARE_U_THERE;
-				Logg.Logging(LEVEL_DEBUG, "SELECT_COMMAND", Slave[Gu8_ActiveSlave].SendCommand, HEX);
+				Logg.Logging(LEVEL_DEBUG, "SELECT_COMMAND CommandNo", Slave[Gu8_ActiveSlave].SendCommand, HEX);
 			}
 			else
 			{
 					Slave[Gu8_ActiveSlave].SendCommand = BLINK_ON;
-					Logg.Logging(LEVEL_DEBUG, "SELECT_COMMAND", Slave[Gu8_ActiveSlave].SendCommand, HEX);
+					Gb_LastCommand = true;
+					Logg.Logging(LEVEL_DEBUG, "SELECT_COMMAND CommandNo", Slave[Gu8_ActiveSlave].SendCommand, HEX);
 //hier kommt noch eine richtige Befehlsauswahl
 			}
 			Gu8_FSM_State = SEND_COMMAND;
@@ -326,9 +482,9 @@ void FSM_Communication()
 		{
 			Communication.MasterOrder(Slave[Gu8_ActiveSlave].S_Address, Slave[Gu8_ActiveSlave].SendCommand, Slave[Gu8_ActiveSlave].SendData[0], Slave[Gu8_ActiveSlave].SendData[1], Slave[Gu8_ActiveSlave].SendData[2], Slave[Gu8_ActiveSlave].SendData[3]);
 			Slave[Gu8_ActiveSlave].Timeout= millis() + 500;
-			Logg.Logging(LEVEL_DEBUG, "Sent Command to Slave", Gu8_ActiveSlave);
-			Logg.Logging(LEVEL_DEBUG, "Command", Slave[Gu8_ActiveSlave].SendCommand, HEX);
-			Logg.Logging(LEVEL_DEBUG, "Slaveadress", Slave[Gu8_ActiveSlave].S_Address, HEX);
+			Logg.Logging(LEVEL_DEBUG, "SEND_COMMAND SlaveNo", Gu8_ActiveSlave);
+			Logg.Logging(LEVEL_DEBUG, "SEND_COMMAND CommandNo", Slave[Gu8_ActiveSlave].SendCommand, HEX);
+			Logg.Logging(LEVEL_DEBUG, "SEND_COMMAND Slaveadress", Slave[Gu8_ActiveSlave].S_Address, HEX);
 			Gu8_FSM_State = WAIT_FOR_ACK;
 			break;
 		}
@@ -337,6 +493,7 @@ void FSM_Communication()
 			int32_t Val = 0;
 			if(Communication.CheckAvailable() > 2)
 			{//Die Anzahl der im Puffer befindlichen Bytes checken ein ACK besteht aus drei Byte erst wenn mindestens so viele im Puffer liegen werden sie abgeholt und interpretiert
+				Logg.Logging(LEVEL_DEBUG, "WAIT_FOR_ACK at SLA", Slave[Gu8_ActiveSlave].S_Address, HEX);
 				Val = Communication.CheckACK(Slave[Gu8_ActiveSlave].S_Address);
 				
 				if (Val == 1)
@@ -350,7 +507,7 @@ void FSM_Communication()
 					{// erfolgt ein ACK von dieser SLA und ist es die Antwort auf ARE_U_THERE, handelt es sich um einen neuen Slave
 						if(!Gb_SlTableFull)
 						{// ist die Slavetabelle bisher noch nicht als voll gekennzeichnet worden, kann der neue Slave eingetragen werden
-							Logg.Logging(LEVEL_FSM, "ACK from new Slave received");
+							Logg.Logging(LEVEL_FSM, "WAIT_FOR_ACK ACK from new Slave received");
 							Gu8_FSM_State = NEW_S_DETECTED;
 						}
 						else
@@ -361,14 +518,24 @@ void FSM_Communication()
 					}
 					else if(Slave[Gu8_ActiveSlave].S_Address == 0xFF && Slave[Gu8_ActiveSlave].SendCommand == SET_SLA)
 					{// wenn das ACK auf SET_SLA erfolgt, muss die SLA in der Slavetabelle angepasst werden
-						Logg.Logging(LEVEL_FSM, "Write new SLA to Slavetable", Gu8_ActiveSlave, HEX);
-						Slave[Gu8_ActiveSlave].S_Address = Gu8_ActiveSlave;
+						Logg.Logging(LEVEL_FSM, "WAIT_FOR_ACK Write new SLA to Slavetable", Gu8_ActiveSlave, HEX);
+						Slave[Gu8_ActiveSlave].SaveSLA(Gu8_ActiveSlave, Gu8_ActiveSlave);
 						Gu8_FSM_State = SELECT_COMMAND;
 					}
 					else
-					{// in allen anderen Faellen, kann der naechse Befehl gesendet werden
-						Logg.Logging(LEVEL_DEBUG, "WAIT_FOR_ACK successful next is SELECT_COMMAND");
-						Gu8_FSM_State = SELECT_COMMAND;
+					{// in allen anderen Faellen, 
+						if(Gb_LastCommand)
+						{// kann der naechste Slave dran kommen
+							Gb_LastCommand = false;
+							Slave[Gu8_ActiveSlave].SleepDelay = 20;
+							Logg.Logging(LEVEL_DEBUG, "WAIT_FOR_ACK successful next is SELECT_SLAVE");
+							Gu8_FSM_State = SELECT_SLAVE;
+						}
+						else
+						{// oder der naechse Befehl gesendet werden
+							Logg.Logging(LEVEL_DEBUG, "WAIT_FOR_ACK successful next is SELECT_COMMAND");
+							Gu8_FSM_State = SELECT_COMMAND;
+						}
 					}
 					
 					if(Slave[Gu8_ActiveSlave].S_Address != 0xFF && Slave[Gu8_ActiveSlave].ErrorCounter > 0)
@@ -378,8 +545,8 @@ void FSM_Communication()
 				}
 				else
 				{// liegt ein Fehlercode vor wird dieser protokolliert 
-					Logg.Logging(LEVEL_ERROR, "ACK Error at Slaveadress", Slave[Gu8_ActiveSlave].S_Address, HEX);
-					Logg.Logging(LEVEL_ERROR, "ACK Error-Code", Val);
+					Logg.Logging(LEVEL_ERROR, "WAIT_FOR_ACK ACK Error at Slaveadress", Slave[Gu8_ActiveSlave].S_Address, HEX);
+					Logg.Logging(LEVEL_ERROR, "WAIT_FOR_ACK ACK Error-Code", Val);
 					
 					if(Slave[Gu8_ActiveSlave].S_Address != 0xFF && Slave[Gu8_ActiveSlave].ErrorCounter < 190)
 					{// der Fehlercounter wird nur fuer bekannte Slaves gezaehlt und soll 200 nicht ueberschreiten
@@ -393,54 +560,51 @@ void FSM_Communication()
 			{
 				if(Gu8_ActiveSlave == 0)
 				{// Beim Suchen nach neuen Mitarbeitern darf schon mal ein Timeout auftreten
+					Logg.Logging(LEVEL_DEBUG, "WAIT_FOR_ACK No new Slave present");
+					Slave[Gu8_ActiveSlave].SleepDelay = 30;
+					Gu8_FSM_State = SELECT_SLAVE;
 				}
 				else
 				{// kommt von eingestelleten Mitarbeitern keine Antwort, wird hier ein timeout error protokolliert
-					Logg.Logging(LEVEL_ERROR, "ACK receiving Timeout at SlavetableNo", Gu8_ActiveSlave);
-					Logg.Logging(LEVEL_ERROR, "ACK receiving Timeout at Slaveadress", Slave[Gu8_ActiveSlave].S_Address, HEX);
+					Logg.Logging(LEVEL_ERROR, "WAIT_FOR_ACK ACK receiving Timeout at SlavetableNo", Gu8_ActiveSlave);
+					Logg.Logging(LEVEL_ERROR, "WAIT_FOR_ACK ACK receiving Timeout at Slaveadress", Slave[Gu8_ActiveSlave].S_Address, HEX);
 					if(Gu8_ActiveSlave != 0 && Slave[Gu8_ActiveSlave].ErrorCounter < 190)
 					{// der Fehlercounter wird nur fuer bekannte Slaves gezaehlt und soll 200 nicht ueberschreiten
 						Slave[Gu8_ActiveSlave].ErrorCounter += 10;
+					}
+					Slave[Gu8_ActiveSlave].SleepDelay = 20;
+					Gu8_FSM_State = SELECT_SLAVE;// es wird erstmal mit allen anderen Slaves kommuniziert so, dass dieser Slave ein wenig Zeit bekommt
 				}
-				Slave[Gu8_ActiveSlave].SleepDelay = 20;
-				Gu8_FSM_State = SELECT_SLAVE;// es wird erstmal mit allen anderen Slaves kommuniziert so, dass dieser Slave ein wenig Zeit bekommt
-			}
 			}
 			break;
 		}
 		case NEW_S_DETECTED:
 		{
-			uint8_t FreeSlot;
-			for(uint8_t i = 1; i < cGu8_Slaves; i++)
-			{// sucht in der Slavetabelle den ersten freien Platz
-				if(Slave[i].S_Address == 0 || Slave[i].S_Address == 0xFF)
-				{// erkennt das Ende der Slavetabelle ist dort bereits ein neuer Slave eingetragen wird er ueberschrieben
-					FreeSlot = i;
-					break;
-				}
-				if(i == cGu8_Slaves-1)
-				{// wenn auch der Letzte Platz besetzt ist
-					Logg.Logging(LEVEL_ERROR, "Slavetable full no new Slave allowed", i);
-					Gb_SlTableFull = true;
-					break;
-				}
-			}
-			if(!Gb_SlTableFull)
-			{
-				Slave[FreeSlot].S_Address=Slave[Gu8_ActiveSlave].S_Address;
-				Slave[FreeSlot].CellNumber = 0;
-				Slave[FreeSlot].SendCommand = SET_SLA;
-				Slave[FreeSlot].SendData[0] = FreeSlot;
-				Gu8_ActiveSlave = FreeSlot;
-				Gu8_FSM_State = SEND_COMMAND;
-				Logg.Logging(LEVEL_FSM, "Slave added to Slavetable at", FreeSlot);
-			}
-			else
-			{
-				Gu8_FSM_State = SELECT_SLAVE;
-			}
 			break;
 		}
+	}
+}
+
+void UpdateDispSlTable()
+{
+	for(uint8_t i = 1; i < 8; i++)
+	{
+		Display.WriteTextElement("Slave_Conf", "t"+String(i+13), String(Slave[i].S_Address, HEX));//t14 bis t20
+		Display.WriteNumElement("Slave_Conf", "n"+String(i-1), Slave[i].CellNumber);
+		String status;//Es existieren die Status sleeping (wenn das Sleepdelay nicht 0 ist), absent (wenn die Slaveadresse 0 ist), failure und Ok
+		if(Slave[i].S_Address == 0)
+		{
+			status = "absent";
+		}
+		else if(Slave[i].SleepDelay != 0)
+		{
+			status = "sleeping";
+		}
+		else
+		{
+			status = "Ok";
+		}
+		Display.WriteTextElement("Slave_Conf", "t"+String(i+6), status);//t7 bis t13
 	}
 }
 
@@ -544,3 +708,20 @@ ISR(WDT_vect)
 	pinMode(cGu8_ResetPin, OUTPUT);
 	digitalWrite(cGu8_ResetPin,LOW);
 }
+
+/*
+Benutzt werden Codes zwischen -40 bis -21 und 21 bis 40 alle anderen sind reserviert fuer andere Kassen
+Fehlercodes:
+
+		-23	: 
+		
+		-22	: 
+		
+		-21	: SearchNewSlave() Kommunikationsfehler
+		
+		-20	: SearchNewSlave() Die Slavetabelle ist voll
+		
+		1	: Kein Fehler
+		
+		0	: Kein Fehler aber auch nix gemacht
+*/
