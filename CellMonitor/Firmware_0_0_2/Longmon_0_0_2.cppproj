@@ -166,7 +166,7 @@
       <VisualMicroSettings>
         <vm.upload.useprogrammer>1</vm.upload.useprogrammer>
         <vm.programmer_name>stk500</vm.programmer_name>
-        <arduino.upload.port>COM6</arduino.upload.port>
+        <arduino.upload.port>COM10</arduino.upload.port>
         <arduino.board.name>pro_8MHzatmega328</arduino.board.name>
         <arduino.board.desc>Arduino Pro or Pro Mini w/ ATmega328 (3.3V, 8 MHz)</arduino.board.desc>
         <arduino.board.property_bag>name=Arduino Pro or Pro Mini w/ ATmega328 (3.3V, 8 MHz)
@@ -576,7 +576,7 @@ build.arch=AVR
       <VisualMicroSettings>
         <vm.upload.useprogrammer>1</vm.upload.useprogrammer>
         <vm.programmer_name>stk500</vm.programmer_name>
-        <arduino.upload.port>COM6</arduino.upload.port>
+        <arduino.upload.port>COM10</arduino.upload.port>
         <arduino.board.name>pro_8MHzatmega328</arduino.board.name>
         <arduino.board.desc>Arduino Pro or Pro Mini w/ ATmega328 (3.3V, 8 MHz)</arduino.board.desc>
         <arduino.board.property_bag>name=Arduino Pro or Pro Mini w/ ATmega328 (3.3V, 8 MHz)

@@ -70,6 +70,7 @@ Zwischen den einzelnen Datagrammen vom Master an die Slaves muss ein Timeout von
 // Kommandos die der Slave versteht
 #define BEGINN 0// !kein Kommando zum senden! 0 bedeutet, dass der Slave von vorn beginnen muss mit der Befehlskette
 //Befehle die der Slave nur ausfuehrt
+#define NO_COMMAND 0x00
 #define ARE_U_THERE 0x01
 #define SET_SLA 0x10
 #define SLEEP 0x11
@@ -91,29 +92,33 @@ class CellToMasterCom
 public:
 	HardwareSerial* m_USART;
 	SoftwareSerial* m_Console;
-	
+// Funktionen, die vom Master benutzt werden
 	CellToMasterCom(HardwareSerial* USART, void* Console);// Master Constructor
-	CellToMasterCom(HardwareSerial* USART, SoftwareSerial* Console, uint8_t* p_SLA);// Slave Constructor
-	
 	int8_t MasterOrder(uint8_t SLA, uint8_t Command, uint8_t u8_Data1 = 0, uint8_t u8_Data2 = 0, uint8_t u8_Data3 = 0, uint8_t u8_Data4 = 0);
 	// int8_t MasterOrder(uint8_t SLA, uint8_t Command, uint16_t u16_Data1, uint8_t u8_Data3 = 0, uint8_t u8_Data4 = 0);
 	// int8_t MasterOrder(uint8_t SLA, uint8_t Command, uint16_t u16_Data1, uint16_t u1_Data2);
 	// int8_t MasterOrder(uint8_t SLA, uint8_t Command, uint32_t u32_Data);
-	// int8_t SlaveAnswer(uint8_t SLA, uint8_t Command, uint8_t u8_Data1, uint8_t u8_Data2 = 0, uint8_t u8_Data3 = 0, uint8_t u8_Data4 = 0);
-	// int8_t SlaveAnswer(uint8_t SLA, uint8_t Command, uint16_t u16_Data1, uint8_t u8_Data3 = 0, uint8_t u8_Data4 = 0);
-	// int8_t SlaveAnswer(uint8_t SLA, uint8_t Command, uint16_t u16_Data1, uint16_t u1_Data2);
-	// int8_t SlaveAnswer(uint8_t SLA, uint8_t Command, uint32_t u32_Data);
-	int8_t SlaveReceive(uint8_t* Command, uint8_t* u8_Data1, uint8_t* u8_Data2, uint8_t* u8_Data3, uint8_t* u8_Data4);;
+	int8_t GetData(uint8_t SLA, uint8_t Command, uint8_t* u8_Data1, uint8_t* u8_Data2, uint8_t* u8_Data3, uint8_t* u8_Data4);
+	int8_t GetData(uint8_t SLA, uint8_t Command, uint16_t* u16_Data1, uint8_t* u8_Data3, uint8_t* u8_Data4);
+	int8_t CheckACK(uint8_t SLA);
+	
+// Funktionen, dei vom Slave benutzt werden
+	CellToMasterCom(HardwareSerial* USART, SoftwareSerial* Console, uint8_t* p_SLA);// Slave Constructor
+	int8_t SlaveAnswer(uint8_t Command, uint8_t u8_Data1, uint8_t u8_Data2 = 0, uint8_t u8_Data3 = 0, uint8_t u8_Data4 = 0);
+	int8_t SlaveAnswer(uint8_t Command, uint16_t u16_Data1, uint8_t u8_Data3 = 0, uint8_t u8_Data4 = 0);
+	// int8_t SlaveAnswer(uint8_t Command, uint16_t u16_Data1, uint16_t u1_Data2);
+	// int8_t SlaveAnswer(uint8_t Command, uint32_t u32_Data);
+	int8_t SlaveReceive(uint8_t* Command, uint8_t* u8_Data1, uint8_t* u8_Data2, uint8_t* u8_Data3, uint8_t* u8_Data4);
 	// int8_t SlaveReceive(uint8_t Command, uint16_t* u16_Data1, uint8_t* u8_Data3, uint8_t* u8_Data4);
 	// int8_t SlaveReceive(uint8_t Command, uint16_t* u16_Data1, uint16_t* u1_Data2);
 	// int8_t SlaveReceive(uint8_t Command, uint32_t* u32_Data);
+	int8_t ACK(int8_t ErrorCode);
 	int8_t ChangeSLA(uint8_t newSLA);
 	int8_t CheckSLA(bool erase);
 	uint8_t GetSLA();
-	int8_t ACK(int8_t ErrorCode);
-	int8_t CheckACK(uint8_t SLA);
+	
+// Funktionen, die von Master und Slave benutzt werden koennen
 	uint8_t CheckAvailable();
-//	int8_t Logg()
 	
 private:
 	Crc16 m_crc;
@@ -121,10 +126,25 @@ private:
 	uint8_t* mp_isConf = 1;
 	uint8_t* mp_slaAdr = 2;
 	bool isMaster;
+	int8_t GetSerialByte(uint16_t Timeout, int8_t* Byte);
 	
 	void Arbitration();
 	
 };
+
+int8_t CellToMasterCom::GetSerialByte(uint16_t Timeout, int8_t* Byte)
+{
+	uint32_t Timestamp = millis() + Timeout;
+	while(!m_USART->available())
+	{//warten, bis Daten eintreffen
+		if(Timestamp < millis())
+		{
+			return 0;
+		}
+	}
+	*Byte = m_USART->read();
+	return 1;
+}
 
 CellToMasterCom::CellToMasterCom(HardwareSerial* USART, void* Console)
 {
@@ -172,6 +192,116 @@ int8_t CellToMasterCom::MasterOrder(uint8_t SLA, uint8_t Command, uint8_t u8_Dat
 	m_USART->write(CRC2);
 	
 	return 1;
+}
+
+int8_t CellToMasterCom::GetData(uint8_t SLA, uint8_t Command, uint8_t* u8_Data1, uint8_t* u8_Data2, uint8_t* u8_Data3, uint8_t* u8_Data4)
+{
+	if(!isMaster)
+	{
+		return -5;
+	}
+	
+	uint8_t Incomming = 0;
+	uint8_t Datablock[6];// Array zur CRC berrechnung
+	uint16_t CRC_sum = 0;// Pruefsumme
+	bool CRC_pass = true;// CRC stimmt ueberein
+	m_crc.clearCrc();
+	
+	if(!GetSerialByte(400, &Incomming))//holt das erste Byte meist das Dummybyte langes Timeout da Beginn der Uebertragung
+	{
+		return -8;
+	}
+	//m_Console->print("1st Byte: "); m_Console->println(Incomming, HEX);
+	
+	while(Incomming != '@')
+	{// alles abholen bis das Datenpaket beginnt
+		if(!GetSerialByte(20, &Incomming))//holt alles bis zum Beginn des Payload
+		{
+			return -8;
+		}
+		//m_Console->print("next Byte: "); m_Console->println(Incomming, HEX);
+	}
+	
+	for(uint8_t i = 0; i < 6; i++)
+	{
+		if(!GetSerialByte(20, &Incomming))//holt den Payload
+		{
+			return -8;
+		}
+		//m_Console->print("Payload Byte: "); m_Console->println(Incomming, HEX);
+		Datablock[i] = Incomming;
+	}
+	
+	if(!GetSerialByte(20, &Incomming))//holt den Payload
+	{// CRC Low holen
+		return -8;
+	}
+	//m_Console->print("CRC low: "); m_Console->println(Incomming, HEX);
+	
+	if(!GetSerialByte(20,(uint8_t*) &CRC_sum))//holt den Payload
+	{// CRC High holen
+		return -8;
+	}
+	//m_Console->print("CRC high: "); m_Console->println(CRC_sum, HEX);
+	CRC_sum = CRC_sum << 8;
+	CRC_sum += Incomming;
+	
+	//m_Console->print("CRC 16: "); m_Console->println(CRC_sum, HEX);
+	uint16_t CRCtemp = m_crc.XModemCrc(Datablock,0,6);
+	//m_Console->print("CRC expect: "); m_Console->println(CRCtemp, HEX);
+	
+	if(CRCtemp == CRC_sum)
+	{
+		if(Datablock[0] == SLA)
+		{
+			if(Datablock[1] == Command)
+			{
+				*u8_Data1 = Datablock[2];
+				*u8_Data2 = Datablock[3];
+				*u8_Data3 = Datablock[4];
+				*u8_Data4 = Datablock[5];
+				
+				while(m_USART->available())
+				{//Restmuell abholen
+					m_USART->read();
+					delay(10);
+				}
+				
+				return 1;
+			}
+			else
+			{
+				return -10;//Kommando falsch
+			}
+		}
+		else
+		{
+			return -9;//SLA falsch
+		}
+		
+	}
+	else
+	{
+		return -1;//CRC Fehler
+	}
+	
+
+		
+	
+	return 0;// Nix passiert, nix zu sehen, bitte gehen sie weiter
+}
+
+int8_t CellToMasterCom::GetData(uint8_t SLA, uint8_t Command, uint16_t* u16_Data1, uint8_t* u8_Data3, uint8_t* u8_Data4)
+{
+	uint8_t DatHighTemp;
+	uint8_t DatLowTemp;
+	
+	int8_t Ec1 = GetData(SLA, Command, &DatHighTemp, &DatLowTemp, u8_Data3, u8_Data4);
+	
+	*u16_Data1 = DatLowTemp;
+	*u16_Data1 |= DatHighTemp<<8;
+	
+	return Ec1;
 }
 
 int8_t CellToMasterCom::SlaveReceive(uint8_t* Command, uint8_t* u8_Data1, uint8_t* u8_Data2, uint8_t* u8_Data3, uint8_t* u8_Data4)
@@ -293,6 +423,78 @@ int8_t CellToMasterCom::SlaveReceive(uint8_t* Command, uint8_t* u8_Data1, uint8_
 	return 0;// Nix passiert, nix zu sehen, bitte gehen sie weiter
 }
 
+int8_t CellToMasterCom::SlaveAnswer(uint8_t Command, uint8_t u8_Data1, uint8_t u8_Data2, uint8_t u8_Data3, uint8_t u8_Data4)
+{
+	if(isMaster)
+	{
+		return -6;
+	}
+	
+	m_crc.clearCrc();
+	uint8_t Datablock[] = {*mp_SLA,Command,u8_Data1,u8_Data2,u8_Data3,u8_Data4};
+	uint16_t CRC_sum = m_crc.XModemCrc(Datablock,0,6);
+	uint8_t CRC1 = CRC_sum & 0x00FF;
+	CRC_sum = CRC_sum >> 8;
+	uint8_t CRC2 = CRC_sum & 0x00FF;
+	
+	UCSR0B |= (1<<TXEN0);//TX einschalten
+	// delay(15);
+	m_Console->print("Send new Data = 0x");
+	m_Console->print('A', HEX);
+	m_USART->write('A');//Dummy Byte zur Sicherheit
+	// delay(15);
+	m_Console->print(" 0x");
+	m_Console->print('@', HEX);
+	m_USART->write('@');//Beginn der Nachricht
+	// delay(15);
+	m_Console->print(" 0x");
+	m_Console->print(*mp_SLA, HEX);
+	m_USART->write(*mp_SLA);
+	// delay(15);
+	m_Console->print(" 0x");
+	m_Console->print(Command, HEX);
+	m_USART->write(Command);
+	// delay(15);
+	m_Console->print(" 0x");
+	m_Console->print(u8_Data1, HEX);
+	m_USART->write(u8_Data1);
+	// delay(15);
+	m_Console->print(" 0x");
+	m_Console->print(u8_Data2, HEX);
+	m_USART->write(u8_Data2);
+	// delay(15);
+	m_Console->print(" 0x");
+	m_Console->print(u8_Data3, HEX);
+	m_USART->write(u8_Data3);
+	// delay(15);
+	m_Console->print(" 0x");
+	m_Console->print(u8_Data4, HEX);
+	m_USART->write(u8_Data4);
+	// delay(15);
+	m_Console->print(" 0x");
+	m_Console->print(CRC1, HEX);
+	m_USART->write(CRC1);
+	// delay(15);
+	m_Console->print(" 0x");
+	m_Console->print(CRC2, HEX);
+	m_USART->write(CRC2);
+	// delay(15);
+	m_Console->print(" 0x");
+	m_Console->println('A', HEX);
+	m_USART->write('A');//Dummy Byte zur Sicherheit
+	m_USART->flush();
+	delay(5);
+	UCSR0B &= ~(1<<TXEN0);
+}
+
+int8_t CellToMasterCom::SlaveAnswer(uint8_t Command, uint16_t u16_Data1, uint8_t u8_Data3, uint8_t u8_Data4)
+{
+	uint8_t LowTemp = u16_Data1 & 0x00FF;
+	uint8_t HighTemp = (u16_Data1 >> 8) & 0x00FF;
+	
+	return SlaveAnswer(Command, HighTemp, LowTemp, u8_Data3, u8_Data4);
+}
+
 int8_t CellToMasterCom::ChangeSLA(uint8_t newSLA)
 {
 	if(isMaster)
@@ -351,15 +553,15 @@ int8_t CellToMasterCom::ACK(int8_t ErrorCode)
 	
 	if(ErrorCode != 0)
 	{
-		UCSR0B |= (1<<TXEN0);
+		UCSR0B |= (1<<TXEN0);//TX einschalten
 		// delay(15);
 		m_Console->print("Send new ACK = 0x");
 		m_Console->print('A', HEX);
-		m_USART->write('A');
+		m_USART->write('A');//Dummy Byte zur Sicherheit
 		// delay(15);
 		m_Console->print(" 0x");
 		m_Console->print('@', HEX);
-		m_USART->write('@');
+		m_USART->write('@');//Beginn der Nachricht
 		// delay(15);
 		m_Console->print(" 0x");
 		m_Console->print(*mp_SLA, HEX);
@@ -371,9 +573,10 @@ int8_t CellToMasterCom::ACK(int8_t ErrorCode)
 		// delay(15);
 		m_Console->print(" 0x");
 		m_Console->println('A', HEX);
-		m_USART->write('A');
-		delay(100);
-		UCSR0B &= ~(1<<TXEN0);
+		m_USART->write('A');//Dummy Byte zur Sicherheit
+		m_USART->flush();
+		delay(5);
+		UCSR0B &= ~(1<<TXEN0);//TX wieder ausschalten
 	}
 }
 
@@ -388,7 +591,7 @@ int8_t CellToMasterCom::CheckACK(uint8_t SLA)
 	uint8_t received = 0;
 	while(!m_USART->available())
 	{
-		if(Timestamp+500 < millis())
+		if(Timestamp+400 < millis())
 		{
 			return -3;
 		}
@@ -396,7 +599,7 @@ int8_t CellToMasterCom::CheckACK(uint8_t SLA)
 	while(m_USART->available())
 	{
 		received = m_USART->read();
-		delay(30);
+		delay(10);// Die Uebertragung eines Byte benoetigt gemessen bei 1200 boud ca. 8ms
 		// m_Console->print("ACK rec: 0x");
 		// m_Console->println(received, HEX);
 		if(received == '@')
@@ -406,7 +609,7 @@ int8_t CellToMasterCom::CheckACK(uint8_t SLA)
 		
 	}
 	received = m_USART->read();
-	delay(30);
+	delay(10);
 	if(received != SLA)
 	{
 		// m_Console->print("ACK error wrong SLA: ");
@@ -427,12 +630,12 @@ int8_t CellToMasterCom::CheckACK(uint8_t SLA)
 		}
 	}
 	received = m_USART->read();
-	delay(30);
+	delay(10);
 
 	while(m_USART->available() && m_USART->peek() != '@')
 	{//Restmuell abholen bis zum beginn einer neuen Nachricht ('@')
 		m_USART->read();
-		delay(30);
+		delay(15);
 	}
 	// m_Console->print("ACK errorcode: ");
 	// m_Console->println(received);
@@ -457,6 +660,12 @@ void CellToMasterCom::Arbitration()
 /*
 Benutzt werden Codes zwischen -20 und 20 alle anderen sind reserviert fuer andere Kassen oder das Hauptprogramm
 Fehlercodes:
+		-10	: Datenpaket von falschem Kommando
+
+		-9	: Datenpaket von falscher Slaveadresse
+
+		-8	: Timeout beim Warten auf Datenpaket
+
 		-7	: Timeout ACK unvollstaendig empfangen
 
 		-6	: Funktion nur auf einem Slave-Device unterstuetzt

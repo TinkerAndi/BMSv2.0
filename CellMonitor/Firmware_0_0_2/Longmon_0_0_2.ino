@@ -47,13 +47,14 @@ void setup() {
 	
 	watchdogOn(1); // Watchdog timer einschalten zum aufwachen aus dem sleepmode
 	digitalWrite(green, HIGH);
+//	Communication.ChangeSLA(0xA1);
 }
 
 void loop() 
 {
 	uint8_t Instruction = 0;
 	uint8_t Data_A4[4];
-	uint32_t u32_Temprature = readTemp();
+	uint16_t u16_Temprature = readTemp();
 	int8_t retVal = 0;
 	
 	retVal = Communication.SlaveReceive(&Instruction, &Data_A4[0], &Data_A4[1], &Data_A4[2], &Data_A4[3]);
@@ -61,77 +62,82 @@ void loop()
 	
 	switch(Instruction)
 	{
-		case ARE_U_THERE:
-		{// Der Master fragt einzig die Anwesenheit des Slave ab
+		case ARE_U_THERE:// Der Master fragt einzig die Anwesenheit des Slave ab
+		{
 			console.println("ARE_U_THERE ping received");
 			break;
 		}
-		case BLINK_ON:
-		{// Der Master fragt einzig die Anwesenheit des Slave ab
+		case BLINK_ON:// Blinksignal orange LED ein
+		{
 			Gb_BlinkOr = true;
 			console.println("BLINK_ON received");
 			break;
 		}
-		case BLINK_OFF:
-		{// Der Master fragt einzig die Anwesenheit des Slave ab
+		case BLINK_OFF:// Blinksignal orange LED aus
+		{
 			Gb_BlinkOr = false;
 			console.println("BLINK_OFF received");
 			break;
 		}
-		case SET_SLA:
-		{// Eine neue Slaveadresse setzen
+		case SET_SLA:// Eine neue Slaveadresse setzen
+		{
 			Communication.ChangeSLA(Data_A4[0]);
 			break;
 		}
-		case SLEEP:
-		{// Sleep Modus
+		case SLEEP:// Sleep Modus
+		{
 			Sleep(Data_A4[0]);
 			break;
 		}
-		case PASS_BALL_ON:
-		{// Passives Ballancing aktivieren
+		case PASS_BALL_ON:// Passives Ballancing aktivieren
+		{
 			Gb_ExtBalControl = true;
 			break;
 		}
-		case PASS_BALL_OFF:
-		{// Passives Ballancing deaktivieren
+		case PASS_BALL_OFF:// Passives Ballancing deaktivieren
+		{
 			Gb_ExtBalControl = false;
 			Ballance(false);
 			console.print("Balancing external off! @ Voltage ");
 			console.println(readVcc());
 			break;
 		}
-		case ACT_BALL_ON:
-		{// aktives Ballancing aktivieren
+		case ACT_BALL_ON:// aktives Ballancing aktivieren
+		{
 			digitalWrite(Bal_active, HIGH);
 			digitalWrite(orange, HIGH);
 			delay(100);
 			console.println("Charge on");
 			break;
 		}
-		case ACT_BALL_OFF:
-		{// aktives Ballancing deaktivieren
+		case ACT_BALL_OFF:// aktives Ballancing deaktivieren
+		{
 			digitalWrite(Bal_active, LOW);
 			digitalWrite(orange, LOW);
 			delay(100);
 			console.println("Charge off");
 			break;
 		}
-		case SEND_VOLT:
-		{// die Zellspannung zum Master senden
-			delay(100);
-			console.println(readVcc());
+		case SEND_VOLT:// die Zellspannung zum Master senden
+		{
+			uint16_t U = readVcc();
+			console.print("SEND_VOLT Volts: "); console.print(U); console.println(" mA");
+			Communication.SlaveAnswer(SEND_VOLT, U);
 			break;
 		}
-		case SEND_INT_TEMP:
-		{// die Chip-Temperatur zum Master senden
-			delay(100);
-			console.println(u32_Temprature);
+		case SEND_INT_TEMP:// die Chip-Temperatur zum Master senden
+		{
+			console.print("SEND_INT_TEMP Centigrade: "); console.print(u16_Temprature); console.println(" C");
+			Communication.SlaveAnswer(SEND_INT_TEMP, u16_Temprature);
 			break;
 		}
-		case SEND_STATUS:
-		{// Der Master fragt einzig die Anwesenheit des Slave ab
-			console.println("SEND_STATUS received");
+		case SEND_STATUS:// Der Master fragt den Status ab
+		{
+			uint8_t PBalStat = Ballance();
+			uint8_t ABalStat = digitalRead(Bal_active);
+			uint8_t OverTStat = Gb_OverTemp;
+			console.print("SEND_STATUS received");
+			Communication.SlaveAnswer(SEND_STATUS, PBalStat, ABalStat, OverTStat);
 			break;
 		}
 	};
@@ -168,9 +174,9 @@ void Cyclic()
 	
 }
 
-long readVcc()// Misst die Spannung (VCC) in mV
+uint16_t readVcc()// Misst die Spannung (VCC) in mV
 {// Read 1.1V reference against AVcc
-	long result;
+	uint16_t result;
 	
 	ADMUX = (1 << REFS0) | (1 << MUX3) | (1 << MUX2) | (1 << MUX1);
 	delay(20); // Wait for Vref to settle 
@@ -189,11 +195,11 @@ long readVcc()// Misst die Spannung (VCC) in mV
 	return result;
 }
 
-long readTemp()// Misst die Chiptemperatur in Grad Celsius
+uint16_t readTemp()// Misst die Chiptemperatur in Grad Celsius
 { // Read temperature sensor against 1.1V reference
-	long result;
+	uint16_t result;
 	ADMUX = (1 << REFS1) | (1 << REFS0) | (1 << MUX3);
-	delay(20); // Wait for Vref to settle 
+	delay(5); // Wait for Vref to settle 
 	
 	ADCSRA |= (1 << ADSC);
 	
@@ -204,7 +210,7 @@ long readTemp()// Misst die Chiptemperatur in Grad Celsius
 	double Celsius = result - 317;
 	Celsius = Celsius * 0.81;
 	
-	return (long)Celsius;
+	return (uint16_t)Celsius;
 }
 
 void Ballance(bool On)
@@ -232,7 +238,7 @@ void CheckForBallance()
 {// Prueft die Spannung und schaltet den passiven Ballancer
 	if(Ballance() == false)
 	{// Wenn der Ballancer nicht schon an ist
-		long Voltage = readVcc();
+		uint16_t Voltage = readVcc();
 		
 		if(Voltage > Gu16_BalThreshold && !Gb_OverTemp)
 		{// einschalten zum Ueberladungsschutz aber der Brandschutz geht vor
@@ -251,7 +257,7 @@ void CheckForBallance()
 	{// wenn der Ballancer an ist muss er zur Spannungsmessung abgeschaltet werden, das darf nicht so oft passieren
 		Ballance(false);
 		delay(1000);
-		long Voltage = readVcc();
+		uint16_t Voltage = readVcc();
 		Gu32_Timestamp001 = millis() + 10000;// Stellt sicher, das nur alle 10s eine Abschaltung zum Messen erfolgt
 		
 		if(Voltage < Gu16_BalThreshold - Gu8_BalHysteresis && !Gb_ExtBalControl)
@@ -273,13 +279,13 @@ void CheckForBallance()
 
 void CheckForTemprature()
 {// Misst die Temperatur und entscheidet, ob weiter geballanced werden kann
-	uint32_t u32_Temprature = readTemp();
+	uint32_t u16_Temprature = readTemp();
 	
-	if(u32_Temprature > Gu8_OvertempThreshold)
+	if(u16_Temprature > Gu8_OvertempThreshold)
 	{// Temperatur zu hoch
 		Gb_OverTemp = true;
 	}
-	else if(u32_Temprature < Gu8_OvertempThreshold - Gu8_OvertempHysteresis)
+	else if(u16_Temprature < Gu8_OvertempThreshold - Gu8_OvertempHysteresis)
 	{// Temperatur wieder ok mit Hysterese
 		Gb_OverTemp = false;
 	}

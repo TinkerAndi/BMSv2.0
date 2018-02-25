@@ -4,7 +4,6 @@
 #define SEND_COMMAND 3
 #define WAIT_FOR_ACK 4
 #define RECEIVE_DATA 5
-#define NEW_S_DETECTED 6
 
 #include "Arduino.h"
 #include <EEPROM.h>
@@ -20,6 +19,7 @@ const uint8_t cGu8_Slaves = 20;// Zahl der maximal unterstuetzten Slaves bei 20 
 const uint8_t cGu8_RTC_VCC = 2;
 const uint8_t cGu8_ResetPin = 3;
 const uint8_t cGu8_SD_Card_CS = 49;
+const uint8_t cGu8_Sleeptime = 100;
 
 
 class Slavetable
@@ -42,7 +42,7 @@ class Slavetable
 	
 	//funktionell erhobene Daten vom Slave selbst
 	uint16_t Voltage;// The Voltage of the cell this slave is connected to
-	uint8_t CoreTemp;// The temprature of the controlers internal sensor indicates the temprature of passive ballancer circuit
+	uint16_t CoreTemp;// The temprature of the controlers internal sensor indicates the temprature of passive ballancer circuit
 	uint8_t CellTemp;// The temprature of the external sensor directly mounted at the conected cell
 	bool ActiveBallanceAvailable = false;// indicates whether or not active ballance circuit is connected
 	bool ActiveBallanceStatus = false;// indicates whether or not the active ballancer is active
@@ -99,7 +99,7 @@ volatile bool cGb_UpdateClock = true;
 
 uint8_t Gu8_FSM_State = SELECT_SLAVE;
 uint8_t Gu8_ActiveSlave = 0;
-bool Gb_LastCommand = false;
+//bool Gb_LastCommand = false;
 bool Gb_SlTableFull = false;
 
 void setup()
@@ -167,10 +167,10 @@ void loop()
 
 	}
 	
-	switch(DispCommand)
+	switch(DispCommand)// Befehlsauswahl Kommandos vom Display
 	{
 		case 0xB1:
-		{// 
+		{
 			Logg.Logging(LEVEL_FSM, "Set Time and Date from Display to RTC");
 			RTC.setYear(Display.GetData(0)-2000);
 			RTC.setMonth(Display.GetData(1));
@@ -181,9 +181,27 @@ void loop()
 			RTC.setDoW(Display.GetData(5));
 			cGb_UpdateClock = true;
 			break;
+		}
+		case 0xB2:// Schaltet den passiven Ballancer an und aus
+		{
+			
+			if(DispData1 == 1)
+			{
+				Communication.MasterOrder(Slave[DispData2].S_Address, PASS_BALL_ON);
+				Slave[DispData2].PassBallanceStatus = true;
 			}
-		case 0xA1:
-		{// Clock_Set Monitor aktualisieren
+			else
+			{
+				Communication.MasterOrder(Slave[DispData2].S_Address, PASS_BALL_OFF);
+				Slave[DispData2].PassBallanceStatus = false;
+			}
+			int8_t Ec1 = Communication.CheckACK(Slave[DispData2].S_Address);
+			Logg.Logging(LEVEL_FSM, "switch Passiv Ballancing", DispData2);
+			Logg.Logging(LEVEL_FSM, "1 = On / 0 = Off", DispData1);
+			break;
+		}
+		case 0xA1:// Clock_Set Monitor aktualisieren 
+		{
 			Logg.Logging(LEVEL_FSM, "Send Data to Elements of Clock_Set Screen");
 			Display.WriteNumElement("Clock_Set", "n0", (uint16_t)Now.m_YR+2000);
 			Display.WriteNumElement("Clock_Set", "n1", Now.m_MO);
@@ -193,8 +211,8 @@ void loop()
 			Display.WriteNumElement("Clock_Set", "va0", Now.m_DOW);
 			break;
 		}
-		case 0xA2:
-		{// SD_Overview Monitor aktualisieren
+		case 0xA2:// SD_Overview Monitor aktualisieren 
+		{
 			Logg.Logging(LEVEL_FSM, "Send Data to Elements of SD_Overview Screen");
 			Display.WriteTextElement("SD_Overview", "t14", Logg.getCardType());
 			Display.WriteTextElement("SD_Overview", "t15", Logg.getFatType());
@@ -204,10 +222,10 @@ void loop()
 			Display.WriteTextElement("SD_Overview", "t5", "");
 			break;
 		}
-		case 0xA3:
+		case 0xA3:// Button Mount SD card 
 		{
 			if(!Logg.SdPresent())
-			{// Button Mount SD card 
+			{
 				Logg.Logging(LEVEL_FSM, "Mount SD Card");
 				if(Logg.Reopen())
 				{
@@ -225,8 +243,8 @@ void loop()
 			}
 			break;
 		}
-		case 0xA4:
-		{// Button unmount sd card
+		case 0xA4:// Button unmount sd card 
+		{
 			if(Logg.SdPresent())
 			{
 				Logg.Logging(LEVEL_FSM, "Unmount SD Card");
@@ -241,8 +259,8 @@ void loop()
 			
 			break;
 		}
-		case 0xA5:
-		{//Seite Logging mit den letzten Zeilen aus dem Loggfile versorgen
+		case 0xA5:// Seite Logging mit den letzten Zeilen aus dem Loggfile versorgen 
+		{
 			delay(1);
 			String Logg2nd;
 			Display.WriteTextElement("Logging", "t1", Logg.getLastLogg(&Logg2nd));
@@ -252,14 +270,14 @@ void loop()
 			//Serial.print(Logg.getLastLogg());
 			break;
 		}
-		case 0xA6:
-		{// Initialisiert die Seite Slave_Conf mit Daten aus der Slavetabelle
+		case 0xA6:// Initialisiert die Seite Slave_Conf mit Daten aus der Slavetabelle 
+		{
 			Logg.Logging(LEVEL_FSM, "Slave Config Seite aktualisieen");
 			UpdateDispSlTable();
 			break;
 		}
-		case 0xC1:
-		{// laesst den angesprochenen Slave zur identifikation mit einer LED blinken
+		case 0xC1:// laesst den angesprochenen Slave zur identifikation mit einer LED blinken 
+		{
 			
 			if(DispData1 == 1)
 			{
@@ -274,16 +292,16 @@ void loop()
 			Logg.Logging(LEVEL_FSM, "On / Off", DispData1);
 			break;
 		}
-		case 0xC2:
-		{// Setzt eine zuordnung des Slave zur Zelle (Zellnummer)
+		case 0xC2:// Setzt eine zuordnung des Slave zur Zelle (Zellnummer) 
+		{
 			Logg.Logging(LEVEL_FSM, "Set Cell Number to Slave", DispData2);
 			Slave[DispData2].SaveCellNo(DispData2, DispData1);// 
 			Logg.Logging(LEVEL_FSM, "New Cell number", Slave[DispData2].CellNumber);
 			UpdateDispSlTable();
 			break;
 		}
-		case 0xC3:
-		{// Sucht nach neuen Slaves
+		case 0xC3:// Sucht nach neuen Slaves 
+		{
 			Display.WriteTextElement("Slave_Conf", "t1", "Searching");
 			int8_t ret = SearchNewSlave();
 			if(ret == 1)
@@ -297,11 +315,35 @@ void loop()
 			UpdateDispSlTable();
 			break;
 		}
-		case 0xC4:
-		{// Loescht die Slavetabelle
+		case 0xC4:// Loescht die Slavetabelle 
+		{
 			Display.WriteTextElement("Slave_Conf", "t1", "Slavetable clear");
 			ClearSlavetable();
 			UpdateDispSlTable();
+			break;
+		}
+		case 0xC5:// Aktualisiert die Slave-Details Seite 
+		{
+			Display.WriteTextElement("Slave_Details", "t10", String(Slave[DispData1].S_Address, HEX));
+			Display.WriteNumElement("Slave_Details", "n0", Slave[DispData1].CellNumber);
+			Display.WriteNumElement("Slave_Details", "n2", Slave[DispData1].ErrorCounter);
+			Display.WriteNumElement("Slave_Details", "n3", Slave[DispData1].Voltage);
+			Display.WriteNumElement("Slave_Details", "n6", Slave[DispData1].CoreTemp);
+			Display.WriteNumElement("Slave_Details", "n7", Slave[DispData1].CellTemp);
+			Display.WriteNumElement("Slave_Details", "n4", Slave[DispData1].PassBallanceTime);
+			Display.WriteNumElement("Slave_Details", "n5", Slave[DispData1].ActiveBallanceTime);
+			if(Slave[DispData1].PassBallanceStatus)
+			{
+				Display.WriteTextElement("Slave_Details", "t16", "on");
+			}
+			if(Slave[DispData1].ActiveBallanceStatus)
+			{
+				Display.WriteTextElement("Slave_Details", "t17", "on");
+			}
+			if(Slave[DispData1].ActiveBallanceAvailable)
+			{
+				Display.WriteTextElement("Slave_Details", "t16", "available");
+			}
 			break;
 		}
 		case 0xFF:
@@ -321,7 +363,7 @@ void loop()
 	
 	
 	
-//	FSM_Communication();
+	FSM_Communication();
 	
 	if(Gb_UpdateDisp)
 	{
@@ -331,8 +373,8 @@ void loop()
 	}
 }
 
-int8_t SearchNewSlave()
-{// Sucht neue Slave Controller (Zellmonitore) und nimmt sie in die Slavetabelle auf
+int8_t SearchNewSlave()// Sucht neue Slave Controller (Zellmonitore) und nimmt sie in die Slavetabelle auf 
+{
 	Logg.Logging(LEVEL_FSM, "BEGINN of SearchNewSlave()");
 	Slave[0].SendCommand = ARE_U_THERE;
 	Communication.MasterOrder(Slave[0].S_Address, Slave[0].SendCommand);
@@ -411,7 +453,7 @@ int8_t SearchNewSlave()
 	return 1;
 }
 
-int8_t RestoreSlavetable()
+int8_t RestoreSlavetable()// Liest die Slavetabelle aus dem EEPROM 
 {
 	Logg.Logging(LEVEL_FSM, "BEGINN of RestoreSlavetable()");
 	for(uint8_t i = 1; i < cGu8_Slaves; i++)
@@ -423,7 +465,7 @@ int8_t RestoreSlavetable()
 	}
 }
 
-int8_t ClearSlavetable()
+int8_t ClearSlavetable()//Loescht die Slavetabelle im EEPROM 
 {
 	Logg.Logging(LEVEL_FSM, "BEGINN of ClearSlavetable()");
 	for(uint8_t i = 1; i < cGu8_Slaves; i++)
@@ -438,24 +480,24 @@ void FSM_Communication()
 	{
 		case SELECT_SLAVE:
 		{
-			if(Slave[Gu8_ActiveSlave].SleepDelay!=0)
-			{//Wenn der slave noch schlaeft
+			if(Slave[Gu8_ActiveSlave].SleepDelay!=0 || Slave[Gu8_ActiveSlave].S_Address == 0xFF || Slave[Gu8_ActiveSlave].S_Address == 0)
+			{//Wenn der slave noch schlaeft oder unkonfiguriert ist
 				if(Gu8_ActiveSlave<cGu8_Slaves)
 				{//Und wir nicht am Ende der Tabelle sind
 					Gu8_ActiveSlave++;// Einfach den naechsten nehmen
 				}
 				else
 				{
-					Gu8_ActiveSlave = 0;// Ansonsten wieder von vorn beginnen
+					Gu8_ActiveSlave = 1;// Ansonsten wieder von vorn beginnen
 				}
 				if(Slave[Gu8_ActiveSlave].S_Address == 0)
 				{// Falls an diesm punkt der Tabelle gar kein slave mehr drinn steht
-					Gu8_ActiveSlave = 0;// wieder von vorn beginnen
-					//Slave[Gu8_ActiveSlave].RestoreSLA(Gu8_ActiveSlave);// im EEPROM schauen, ob der Slave schon eine Adresse hat
+					Gu8_ActiveSlave = 1;// wieder von vorn beginnen
 				}
 			}
 			else
 			{//Ist der Slave wach geht es mit ihm weiter
+				Slave[Gu8_ActiveSlave].SendCommand = NO_COMMAND;
 				Gu8_FSM_State = SELECT_COMMAND;
 				Logg.Logging(LEVEL_DEBUG, "SELECT_SLAVE SlaveNo", Gu8_ActiveSlave);
 			}
@@ -463,36 +505,95 @@ void FSM_Communication()
 		}
 		case SELECT_COMMAND:
 		{
-			if(Gu8_ActiveSlave == 0)
-			{
-				Slave[Gu8_ActiveSlave].SendCommand = ARE_U_THERE;
-				Logg.Logging(LEVEL_DEBUG, "SELECT_COMMAND CommandNo", Slave[Gu8_ActiveSlave].SendCommand, HEX);
+			if(Slave[Gu8_ActiveSlave].SendCommand == SLEEP)
+			{// SLEEP ist immer das letzte Kommando in der Abarbeitung
+				Logg.Logging(LEVEL_DEBUG, "SELECT_COMMAND last Command reached next is SELECT_SLAVE");
+				Gu8_FSM_State = SELECT_SLAVE;
 			}
 			else
 			{
-					Slave[Gu8_ActiveSlave].SendCommand = BLINK_ON;
-					Gb_LastCommand = true;
-					Logg.Logging(LEVEL_DEBUG, "SELECT_COMMAND CommandNo", Slave[Gu8_ActiveSlave].SendCommand, HEX);
-//hier kommt noch eine richtige Befehlsauswahl
+				switch(Slave[Gu8_ActiveSlave].SendCommand)
+				{
+					case NO_COMMAND:
+					{
+						Slave[Gu8_ActiveSlave].SendCommand = SEND_VOLT;
+						Logg.Logging(LEVEL_DEBUG, "SELECT_COMMAND: SEND_VOLT");
+						break;
+					}
+					case SEND_VOLT:
+					{
+						Slave[Gu8_ActiveSlave].SendCommand = SEND_INT_TEMP;
+						Logg.Logging(LEVEL_DEBUG, "SELECT_COMMAND: SEND_INT_TEMP");
+						break;
+					}
+					case SEND_INT_TEMP:
+					{
+						Slave[Gu8_ActiveSlave].SendCommand = SEND_STATUS;
+						Logg.Logging(LEVEL_DEBUG, "SELECT_COMMAND: SEND_STATUS");
+						break;
+					}
+					case SEND_STATUS:
+					{
+						Slave[Gu8_ActiveSlave].SendCommand = SLEEP;
+						Logg.Logging(LEVEL_DEBUG, "SELECT_COMMAND: SLEEP");
+						Slave[Gu8_ActiveSlave].SendData[0] = cGu8_Sleeptime;
+						Slave[Gu8_ActiveSlave].SleepDelay = cGu8_Sleeptime+10;
+						break;
+					}
+				}
+				Logg.Logging(LEVEL_DEBUG, "SELECT_COMMAND CommandNo", Slave[Gu8_ActiveSlave].SendCommand, HEX);
+				Gu8_FSM_State = SEND_COMMAND;
 			}
-			Gu8_FSM_State = SEND_COMMAND;
 			break;
 		}
 		case SEND_COMMAND:
 		{
 			Communication.MasterOrder(Slave[Gu8_ActiveSlave].S_Address, Slave[Gu8_ActiveSlave].SendCommand, Slave[Gu8_ActiveSlave].SendData[0], Slave[Gu8_ActiveSlave].SendData[1], Slave[Gu8_ActiveSlave].SendData[2], Slave[Gu8_ActiveSlave].SendData[3]);
-			Slave[Gu8_ActiveSlave].Timeout= millis() + 500;
+			Slave[Gu8_ActiveSlave].Timeout= millis() + 400; //Von beginn der Master Transmission bis Ende Slave ACK vergehen gemessen ca. 295ms
 			Logg.Logging(LEVEL_DEBUG, "SEND_COMMAND SlaveNo", Gu8_ActiveSlave);
 			Logg.Logging(LEVEL_DEBUG, "SEND_COMMAND CommandNo", Slave[Gu8_ActiveSlave].SendCommand, HEX);
 			Logg.Logging(LEVEL_DEBUG, "SEND_COMMAND Slaveadress", Slave[Gu8_ActiveSlave].S_Address, HEX);
 			Gu8_FSM_State = WAIT_FOR_ACK;
 			break;
 		}
+		case RECEIVE_DATA:
+		{
+			int8_t ErC1 = 0;
+			uint8_t* dummy1;
+			uint8_t* dummy2;
+			uint8_t* dummy3;
+			uint8_t* dummy4;
+			
+			if(Slave[Gu8_ActiveSlave].SendCommand == SEND_VOLT)
+			{
+				ErC1 = Communication.GetData(Slave[Gu8_ActiveSlave].S_Address, (uint8_t)SEND_VOLT, &Slave[Gu8_ActiveSlave].Voltage, dummy2, dummy3);
+				Logg.Logging(LEVEL_DEBUG, "GetData SEND_VOLT", Slave[Gu8_ActiveSlave].Voltage);
+			}
+			else if(Slave[Gu8_ActiveSlave].SendCommand == SEND_INT_TEMP)
+			{
+				ErC1 = Communication.GetData(Slave[Gu8_ActiveSlave].S_Address, (uint8_t)SEND_INT_TEMP, &Slave[Gu8_ActiveSlave].CoreTemp, dummy2, dummy3);
+				Logg.Logging(LEVEL_DEBUG, "GetData SEND_INT_TEMP", Slave[Gu8_ActiveSlave].CoreTemp);
+			}
+			else if(Slave[Gu8_ActiveSlave].SendCommand == SEND_STATUS)
+			{
+				ErC1 = Communication.GetData(Slave[Gu8_ActiveSlave].S_Address, (uint8_t)SEND_STATUS, dummy1, dummy2, dummy3, dummy4);
+				Logg.Logging(LEVEL_DEBUG, "GetData SEND_STATUS PBalStat", *dummy1);
+				Logg.Logging(LEVEL_DEBUG, "GetData SEND_STATUS ABalStat", *dummy2);
+				Logg.Logging(LEVEL_DEBUG, "GetData SEND_STATUS OverTStat", *dummy3);
+			}
+			if(ErC1 != 1)
+			{
+				Logg.Logging(LEVEL_ERROR, "GetData returns Error", (int32_t)ErC1);
+			}
+
+			Gu8_FSM_State = SELECT_COMMAND;
+			break;
+		}
 		case WAIT_FOR_ACK:
 		{
 			int32_t Val = 0;
-			if(Communication.CheckAvailable() > 2)
-			{//Die Anzahl der im Puffer befindlichen Bytes checken ein ACK besteht aus drei Byte erst wenn mindestens so viele im Puffer liegen werden sie abgeholt und interpretiert
+			if(Communication.CheckAvailable() > 4)
+			{//Die Anzahl der im Puffer befindlichen Bytes checken ein ACK besteht aus 5 Byte erst wenn mindestens so viele im Puffer liegen werden sie abgeholt und interpretiert
 				Logg.Logging(LEVEL_DEBUG, "WAIT_FOR_ACK at SLA", Slave[Gu8_ActiveSlave].S_Address, HEX);
 				Val = Communication.CheckACK(Slave[Gu8_ActiveSlave].S_Address);
 				
@@ -503,42 +604,13 @@ void FSM_Communication()
 						Logg.Logging(LEVEL_DEBUG, "WAIT_FOR_ACK successful next is RECEIVE_DATA");
 						Gu8_FSM_State = RECEIVE_DATA;
 					}
-					else if(Slave[Gu8_ActiveSlave].S_Address == 0xFF && Slave[Gu8_ActiveSlave].SendCommand == ARE_U_THERE)
-					{// erfolgt ein ACK von dieser SLA und ist es die Antwort auf ARE_U_THERE, handelt es sich um einen neuen Slave
-						if(!Gb_SlTableFull)
-						{// ist die Slavetabelle bisher noch nicht als voll gekennzeichnet worden, kann der neue Slave eingetragen werden
-							Logg.Logging(LEVEL_FSM, "WAIT_FOR_ACK ACK from new Slave received");
-							Gu8_FSM_State = NEW_S_DETECTED;
-						}
-						else
-						{// ist die Slavetabelle voll, wird mit der Kommunikation wie gehabt fort gefahren
-							Logg.Logging(LEVEL_DEBUG, "WAIT_FOR_ACK successful Selavetable full next is SELECT_SLAVE");
-							Gu8_FSM_State = SELECT_SLAVE;
-						}
-					}
-					else if(Slave[Gu8_ActiveSlave].S_Address == 0xFF && Slave[Gu8_ActiveSlave].SendCommand == SET_SLA)
-					{// wenn das ACK auf SET_SLA erfolgt, muss die SLA in der Slavetabelle angepasst werden
-						Logg.Logging(LEVEL_FSM, "WAIT_FOR_ACK Write new SLA to Slavetable", Gu8_ActiveSlave, HEX);
-						Slave[Gu8_ActiveSlave].SaveSLA(Gu8_ActiveSlave, Gu8_ActiveSlave);
-						Gu8_FSM_State = SELECT_COMMAND;
-					}
 					else
-					{// in allen anderen Faellen, 
-						if(Gb_LastCommand)
-						{// kann der naechste Slave dran kommen
-							Gb_LastCommand = false;
-							Slave[Gu8_ActiveSlave].SleepDelay = 20;
-							Logg.Logging(LEVEL_DEBUG, "WAIT_FOR_ACK successful next is SELECT_SLAVE");
-							Gu8_FSM_State = SELECT_SLAVE;
-						}
-						else
-						{// oder der naechse Befehl gesendet werden
+					{// in allen anderen Faellen, kann der naechse Befehl gesendet werden
 							Logg.Logging(LEVEL_DEBUG, "WAIT_FOR_ACK successful next is SELECT_COMMAND");
 							Gu8_FSM_State = SELECT_COMMAND;
-						}
 					}
 					
-					if(Slave[Gu8_ActiveSlave].S_Address != 0xFF && Slave[Gu8_ActiveSlave].ErrorCounter > 0)
+					if(Slave[Gu8_ActiveSlave].ErrorCounter > 0)
 					{// bei erfolgreicher Kommunikation, wird der Fehlercounter dekrementiert
 						Slave[Gu8_ActiveSlave].ErrorCounter --;
 					}
@@ -548,7 +620,7 @@ void FSM_Communication()
 					Logg.Logging(LEVEL_ERROR, "WAIT_FOR_ACK ACK Error at Slaveadress", Slave[Gu8_ActiveSlave].S_Address, HEX);
 					Logg.Logging(LEVEL_ERROR, "WAIT_FOR_ACK ACK Error-Code", Val);
 					
-					if(Slave[Gu8_ActiveSlave].S_Address != 0xFF && Slave[Gu8_ActiveSlave].ErrorCounter < 190)
+					if(Slave[Gu8_ActiveSlave].ErrorCounter < 191)
 					{// der Fehlercounter wird nur fuer bekannte Slaves gezaehlt und soll 200 nicht ueberschreiten
 						Slave[Gu8_ActiveSlave].ErrorCounter += 10;
 					}
@@ -557,35 +629,22 @@ void FSM_Communication()
 				}
 			}
 			else if(Slave[Gu8_ActiveSlave].Timeout < millis())
-			{
-				if(Gu8_ActiveSlave == 0)
-				{// Beim Suchen nach neuen Mitarbeitern darf schon mal ein Timeout auftreten
-					Logg.Logging(LEVEL_DEBUG, "WAIT_FOR_ACK No new Slave present");
-					Slave[Gu8_ActiveSlave].SleepDelay = 30;
-					Gu8_FSM_State = SELECT_SLAVE;
+			{// kommt vom Mitarbeiter keine Antwort, wird hier ein timeout error protokolliert
+				Logg.Logging(LEVEL_DEBUG, "WAIT_FOR_ACK ACK receiving Timeout at SlavetableNo", Gu8_ActiveSlave);
+				Logg.Logging(LEVEL_ERROR, "WAIT_FOR_ACK ACK receiving Timeout at Slaveadress", Slave[Gu8_ActiveSlave].S_Address, HEX);
+				if(Gu8_ActiveSlave != 0 && Slave[Gu8_ActiveSlave].ErrorCounter < 191)
+				{// der Fehlercounter wird nur fuer bekannte Slaves gezaehlt und soll 200 nicht ueberschreiten
+					Slave[Gu8_ActiveSlave].ErrorCounter += 10;
 				}
-				else
-				{// kommt von eingestelleten Mitarbeitern keine Antwort, wird hier ein timeout error protokolliert
-					Logg.Logging(LEVEL_ERROR, "WAIT_FOR_ACK ACK receiving Timeout at SlavetableNo", Gu8_ActiveSlave);
-					Logg.Logging(LEVEL_ERROR, "WAIT_FOR_ACK ACK receiving Timeout at Slaveadress", Slave[Gu8_ActiveSlave].S_Address, HEX);
-					if(Gu8_ActiveSlave != 0 && Slave[Gu8_ActiveSlave].ErrorCounter < 190)
-					{// der Fehlercounter wird nur fuer bekannte Slaves gezaehlt und soll 200 nicht ueberschreiten
-						Slave[Gu8_ActiveSlave].ErrorCounter += 10;
-					}
-					Slave[Gu8_ActiveSlave].SleepDelay = 20;
-					Gu8_FSM_State = SELECT_SLAVE;// es wird erstmal mit allen anderen Slaves kommuniziert so, dass dieser Slave ein wenig Zeit bekommt
-				}
+				Slave[Gu8_ActiveSlave].SleepDelay = 20;
+				Gu8_FSM_State = SELECT_SLAVE;// es wird erstmal mit allen anderen Slaves kommuniziert so, dass dieser Slave ein wenig Zeit bekommt
 			}
-			break;
-		}
-		case NEW_S_DETECTED:
-		{
 			break;
 		}
 	}
 }
 
-void UpdateDispSlTable()
+void UpdateDispSlTable()// Versorgt die Displayseite Slave_Details mit Daten 
 {
 	for(uint8_t i = 1; i < 8; i++)
 	{
@@ -608,7 +667,7 @@ void UpdateDispSlTable()
 	}
 }
 
-void RTC_read(bool* Update)
+void RTC_read(bool* Update)// Schaltet die RTC ein und liest Zeit und Datum 
 {
 	if(*Update)
 	{
@@ -631,7 +690,7 @@ void RTC_read(bool* Update)
 	}
 }
 
-void SetupTimer5()
+void SetupTimer5()// Konfiguriet Timer 5 auf Interrupt 1 Hz 
 {
 	uint8_t RegHelper = 0;
 	TCCR5A = RegHelper;// kein Output an HW-Pins WGM50 und WGM51 auf 0
@@ -654,7 +713,7 @@ void SetupTimer5()
 	TIMSK5 = RegHelper;// Enable OCR2A compare match Interrupt
 }
 
-void watchdogOn(uint8_t Seconds)
+void watchdogOn(uint8_t Seconds)// Konfiguriert den Watchdog Timer 
 {
 	uint8_t reg = (1 << WDP0) | (1 << WDP3);// Standard 8 Sekunden
 	
