@@ -41,6 +41,11 @@ void LoggingClass::Logging(uint8_t Priority, String statement, double value)
 	}
 }
 
+void LoggingClass::Logging(uint8_t Priority, String statement, int8_t value)
+{
+	Logging(Priority, statement, (int32_t)value);
+}
+
 void LoggingClass::Logging(uint8_t Priority, String statement, int32_t value)
 {
 	if(m_LoggingLevel < Priority)

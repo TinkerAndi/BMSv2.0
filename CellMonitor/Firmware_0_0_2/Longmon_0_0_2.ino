@@ -24,6 +24,8 @@ uint16_t	Gu16_BalUndervoltThreshold = 2800; // Spannung ab der der pasive Ballan
 uint8_t		Gu8_OvertempThreshold = 60; // Abschalttemperatur(Temperature Range AtMega328p: -40?C to 85?C)
 uint8_t		Gu8_OvertempHysteresis = 5;
 uint8_t		Gu8_SlaveAdress = 255;
+uint16_t	Gu16_Vcc = 0;
+uint16_t	Gu16_IntTemp = 0;
 
 Crc16 crc;// Objekt zuz Bildung einer Pruefsumme
 SoftwareSerial console (rxPin, txPin); // Debug Schnittstelle ueber SPI-Pins MISO=TX, MOSI=RX
@@ -54,7 +56,6 @@ void loop()
 {
 	uint8_t Instruction = 0;
 	uint8_t Data_A4[4];
-	uint16_t u16_Temprature = readTemp();
 	int8_t retVal = 0;
 	
 	retVal = Communication.SlaveReceive(&Instruction, &Data_A4[0], &Data_A4[1], &Data_A4[2], &Data_A4[3]);
@@ -99,7 +100,7 @@ void loop()
 			Gb_ExtBalControl = false;
 			Ballance(false);
 			console.print("Balancing external off! @ Voltage ");
-			console.println(readVcc());
+			console.println(Gu16_Vcc);
 			break;
 		}
 		case ACT_BALL_ON:// aktives Ballancing aktivieren
@@ -120,15 +121,14 @@ void loop()
 		}
 		case SEND_VOLT:// die Zellspannung zum Master senden
 		{
-			uint16_t U = readVcc();
-			console.print("SEND_VOLT Volts: "); console.print(U); console.println(" mA");
-			Communication.SlaveAnswer(SEND_VOLT, U);
+			console.print("SEND_VOLT Volts: "); console.print(Gu16_Vcc); console.println(" mA");
+			Communication.SlaveAnswer(SEND_VOLT, Gu16_Vcc);
 			break;
 		}
 		case SEND_INT_TEMP:// die Chip-Temperatur zum Master senden
 		{
-			console.print("SEND_INT_TEMP Centigrade: "); console.print(u16_Temprature); console.println(" C");
-			Communication.SlaveAnswer(SEND_INT_TEMP, u16_Temprature);
+			console.print("SEND_INT_TEMP Centigrade: "); console.print(Gu16_IntTemp); console.println(" C");
+			Communication.SlaveAnswer(SEND_INT_TEMP, Gu16_IntTemp);
 			break;
 		}
 		case SEND_STATUS:// Der Master fragt den Status ab
@@ -140,11 +140,16 @@ void loop()
 			Communication.SlaveAnswer(SEND_STATUS, PBalStat, ABalStat, OverTStat);
 			break;
 		}
+		case 0x00:// Das allgemeine Geschäft erledigen wenn nichts vom Master kommt
+		{
+			Gu16_IntTemp = readTemp();
+			Gu16_Vcc = readVcc();
+			CheckForBallance();
+			CheckForTemprature();
+			Cyclic();
+			break;
+		}
 	};
-	
-	CheckForBallance();
-	CheckForTemprature();
-	Cyclic();
 }
 
 void Cyclic()
@@ -238,37 +243,36 @@ void CheckForBallance()
 {// Prueft die Spannung und schaltet den passiven Ballancer
 	if(Ballance() == false)
 	{// Wenn der Ballancer nicht schon an ist
-		uint16_t Voltage = readVcc();
 		
-		if(Voltage > Gu16_BalThreshold && !Gb_OverTemp)
+		if(Gu16_Vcc > Gu16_BalThreshold && !Gb_OverTemp)
 		{// einschalten zum Ueberladungsschutz aber der Brandschutz geht vor
 			Ballance(true);
 			console.print("Balancing auto on! @ Voltage ");
-			console.println(Voltage);
+			console.println(Gu16_Vcc);
 		}
-		else if(Gb_ExtBalControl && !Gb_OverTemp && Voltage > Gu16_BalUndervoltThreshold)
+		else if(Gb_ExtBalControl && !Gb_OverTemp && Gu16_Vcc > Gu16_BalUndervoltThreshold)
 		{// einschalten wenn externer Befehl vorliegt aber Tiefentladungsschutz und Brandschutz gehen vor
 			Ballance(true);
 			console.print("Balancing external on! @ Voltage ");
-			console.println(readVcc());
+			console.println(Gu16_Vcc);
 		}
 	}
 	else if(millis() > Gu32_Timestamp001)
 	{// wenn der Ballancer an ist muss er zur Spannungsmessung abgeschaltet werden, das darf nicht so oft passieren
 		Ballance(false);
-		delay(1000);
-		uint16_t Voltage = readVcc();
+		delay(300);
+		Gu16_Vcc = readVcc();
 		Gu32_Timestamp001 = millis() + 10000;// Stellt sicher, das nur alle 10s eine Abschaltung zum Messen erfolgt
 		
-		if(Voltage < Gu16_BalThreshold - Gu8_BalHysteresis && !Gb_ExtBalControl)
+		if(Gu16_Vcc < Gu16_BalThreshold - Gu8_BalHysteresis && !Gb_ExtBalControl)
 		{// Wenn kein Ueberladungsschutz mehr gebraucht wird
 			console.print("Balancing auto off! @ Voltage ");
-			console.println(Voltage);
+			console.println(Gu16_Vcc);
 		}
-		else if(Voltage < Gu16_BalUndervoltThreshold)
+		else if(Gu16_Vcc < Gu16_BalUndervoltThreshold)
 		{// Wenn Tiefentladung droht
 			console.print("Balancing undervoltage off! @ Voltage ");
-			console.println(Voltage);
+			console.println(Gu16_Vcc);
 		}
 		else if(!Gb_OverTemp)
 		{// Oben wurde zur Messung abgeschaltet hier wieder an wenn nicht eine der Abschaltbedingungen erfuellt ist
@@ -279,13 +283,12 @@ void CheckForBallance()
 
 void CheckForTemprature()
 {// Misst die Temperatur und entscheidet, ob weiter geballanced werden kann
-	uint32_t u16_Temprature = readTemp();
 	
-	if(u16_Temprature > Gu8_OvertempThreshold)
+	if(Gu16_IntTemp > Gu8_OvertempThreshold)
 	{// Temperatur zu hoch
 		Gb_OverTemp = true;
 	}
-	else if(u16_Temprature < Gu8_OvertempThreshold - Gu8_OvertempHysteresis)
+	else if(Gu16_IntTemp < Gu8_OvertempThreshold - Gu8_OvertempHysteresis)
 	{// Temperatur wieder ok mit Hysterese
 		Gb_OverTemp = false;
 	}
@@ -295,9 +298,9 @@ void CheckForTemprature()
 		{// natuerlich nur wenn auch an ist
 			Ballance(false);
 			console.print("Balancing overtemp off! @ Voltage ");
-			console.print(readVcc());
+			console.print(Gu16_Vcc);
 			console.print(" mV @ temp ");
-			console.println(readTemp());
+			console.println(Gu16_IntTemp);
 		}
 	}
 	

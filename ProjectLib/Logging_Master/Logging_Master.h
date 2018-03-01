@@ -80,6 +80,7 @@ public:
 	void Logging(uint8_t Priority, String statement);
 	void Logging(uint8_t Priority, String statement, double value);
 	void Logging(uint8_t Priority, String statement, int32_t value);
+	void Logging(uint8_t Priority, String statement, int8_t value);
 	void Logging(uint8_t Priority, String statement, uint32_t value, uint8_t NumberSystem);
 	void Logging(uint8_t Priority, String statement, String value);
 	void Logging(uint8_t Priority, String statement, uint16_t value, uint8_t NumberSystem);
