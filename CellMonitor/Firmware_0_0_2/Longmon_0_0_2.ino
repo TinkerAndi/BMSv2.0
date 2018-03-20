@@ -15,6 +15,7 @@ bool	Gb_bal_Status = false;
 bool	Gb_OverTemp = false;
 bool	Gb_ExtBalControl = false; // true wenn der Ballancer von auﬂen eingeschaltet wurde
 bool	Gb_BlinkOr = false;
+bool	Gb_Autoballance = true;
 
 uint32_t	Gu32_Timestamp001 = 0;
 uint32_t	Gu32_Timestamp002 = 0;
@@ -26,6 +27,8 @@ uint8_t		Gu8_OvertempHysteresis = 5;
 uint8_t		Gu8_SlaveAdress = 255;
 uint16_t	Gu16_Vcc = 0;
 uint16_t	Gu16_IntTemp = 0;
+uint16_t	Gu16_Offset = 0x7FFF; // Offset kann auch negativ sein, um das nicht im Nextion und auf dem Bus darstellen zu muessen entspricht 7FFF null
+uint16_t	Gu16_Gain = 2000;
 
 Crc16 crc;// Objekt zuz Bildung einer Pruefsumme
 SoftwareSerial console (rxPin, txPin); // Debug Schnittstelle ueber SPI-Pins MISO=TX, MOSI=RX
@@ -140,12 +143,46 @@ void loop()
 			Communication.SlaveAnswer(SEND_STATUS, PBalStat, ABalStat, OverTStat);
 			break;
 		}
+		case DISABLE_AUTO_BALLANCE:// Automatische Ballancen und Temperaturueberwachung aus
+		{
+			Gb_Autoballance = false;
+			console.println("DISABLE_AUTO_BALLANCE received");
+			break;
+		}
+		case ENABLE_AUTO_BALLANCE:// Automatische Ballancen und Temperaturueberwachung ein
+		{
+			Gb_Autoballance = true;
+			console.println("ENABLE_AUTO_BALLANCE received");
+			break;
+		}
+		case SEND_Volt_DN:// die Zellspannung zum Master senden
+		{
+			uint16_t DN = readVoltADC();
+			console.print("SEND_Volt_DN DN: "); console.print(DN);
+			Communication.SlaveAnswer(SEND_Volt_DN, DN);
+			break;
+		}
+		case SEND_Volt_OFFSET:// die Zellspannung zum Master senden
+		{
+			console.print("SEND_Volt_OFFSET: "); console.print(Gu16_Offset); console.println(" mA");
+			Communication.SlaveAnswer(SEND_Volt_OFFSET, Gu16_Offset);
+			break;
+		}
+		case SEND_Volt_GAIN:// die Zellspannung zum Master senden
+		{
+			console.print("SEND_Volt_GAIN DN: "); console.print(Gu16_Gain); console.println(" mA");
+			Communication.SlaveAnswer(SEND_Volt_GAIN, Gu16_Gain);
+			break;
+		}
 		case 0x00:// Das allgemeine Gesch‰ft erledigen wenn nichts vom Master kommt
 		{
 			Gu16_IntTemp = readTemp();
 			Gu16_Vcc = readVcc();
-			CheckForBallance();
-			CheckForTemprature();
+			if(Gb_Autoballance)
+			{
+				CheckForBallance();
+				CheckForTemprature();
+			}
 			Cyclic();
 			break;
 		}
@@ -179,24 +216,29 @@ void Cyclic()
 	
 }
 
-uint16_t readVcc()// Misst die Spannung (VCC) in mV
+uint16_t readVoltADC()
 {// Read 1.1V reference against AVcc
 	uint16_t result;
 	
 	ADMUX = (1 << REFS0) | (1 << MUX3) | (1 << MUX2) | (1 << MUX1);
-	delay(20); // Wait for Vref to settle 
+	delay(10); // Wait for Vref to settle
 	
-	ADCSRA |= (1 << ADSC); 
+	ADCSRA |= (1 << ADSC);
 	
-	// Convert 
-	while (bit_is_set(ADCSRA,ADSC)); 
-	result = ADCL; 
-	result |= ADCH<<8; 
-	result = 1126400L / result; // umwandeln DN in mA
-	
-	result += (result / 405) * 22 - 23; // Korrektur des Vorwiderstands am Prozessor
-	
-	// Back-calculate AVcc in mV 
+	// Convert
+	while (bit_is_set(ADCSRA,ADSC));
+	result = ADCL;
+	result |= ADCH<<8;
+	return result;
+}
+
+uint16_t readVcc()// Misst die Spannung (VCC) in mV
+{
+	double Gain = (double)Gu16_Gain / 1000;
+	uint16_t result = readVoltADC();
+	result = (double)(result * Gain) + ((int32_t)Gu16_Offset - 0x7FFF);
+	//result = 1126400L / result; // umwandeln DN in mA
+	//result += (result / 405) * 22 - 23; // Korrektur des Vorwiderstands am Prozessor
 	return result;
 }
 

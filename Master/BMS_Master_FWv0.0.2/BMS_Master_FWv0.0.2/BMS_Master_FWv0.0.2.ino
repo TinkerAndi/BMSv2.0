@@ -105,7 +105,7 @@ uint8_t Gu8_ImediateCommand = NO_COMMAND;
 uint8_t Gu8_Sleeptime = cGu8_Sleeptime;
 bool Gb_SlTableFull = false;
 bool Gb_CommActive = false;
-//bool Gb_CommBlock = false;
+bool Gb_CommBlock = false;
 
 void setup()
 {
@@ -180,6 +180,11 @@ void loop()
 	
 	switch(DispCommand)// Befehlsauswahl Kommandos vom Display
 	{
+		default:
+		{
+			Logg.Logging(LEVEL_ERROR, "Command not recognized", DispIncoming, HEX);
+			break;
+		}
 		case 0xB1:// Stellt die Uhr
 		{
 			Logg.Logging(LEVEL_FSM, "Set Time and Date from Display to RTC");
@@ -282,9 +287,24 @@ void loop()
 		}
 		case 0xA6:// Initialisiert die Seite Slave_Conf mit Daten aus der Slavetabelle 
 		{
-			Gu8_Sleeptime = 0;
+			//Gu8_Sleeptime = 0;
 			Logg.Logging(LEVEL_FSM, "Slave Config Seite aktualisieen");
 			UpdateDispSlTable();
+			break;
+		}
+		case 0xA7:// Stoppt die Kommunikation von FSM_Communication()
+		{
+			Gb_CommBlock = true;
+			break;
+		}
+		case 0xA8:// Erlaubt die Kommunikation von FSM_Communication()
+		{
+			Gb_CommBlock = false;
+			break;
+		}
+		case 0xA9:// Stellt Offset und Gain zur Spannungsberrechnung ein
+		{
+			VoltageSettings();
 			break;
 		}
 		case 0xC1:// laesst den angesprochenen Slave zur identifikation mit einer LED blinken 
@@ -313,29 +333,30 @@ void loop()
 		}
 		case 0xC3:// Sucht nach neuen Slaves 
 		{
-			Display.WriteTextElement("Slave_Conf", "t1", "Searching");
-			int8_t ret = SearchNewSlave();
+			Display.WriteTextElement("SearchSlave", "t1", "Searching");
+			int8_t Slot = 0;
+			int8_t ret = SearchNewSlave(&Slot);
 			if(ret == 1)
 			{
-				Display.WriteTextElement("Slave_Conf", "t1", "found new slave");
+				Display.WriteTextElement("SearchSlave", "t1", "Found new slave.\radded at location " + String(Slot) + ".");
 			}
 			else
 			{
-				Display.WriteTextElement("Slave_Conf", "t1", "no new Slave");
+				Display.WriteTextElement("SearchSlave", "t1", "No new Slave found.");
 			}
-			UpdateDispSlTable();
+			//UpdateDispSlTable();
 			break;
 		}
 		case 0xC4:// Loescht die Slavetabelle 
 		{
-			Display.WriteTextElement("Slave_Conf", "t1", "Slavetable clear");
+			Display.WriteTextElement("SearchSlave", "t1", "Slavetable is cleared.");
 			ClearSlavetable();
 			UpdateDispSlTable();
 			break;
 		}
 		case 0xC5:// Aktualisiert die Slave-Details Seite 
 		{
-			Gu8_Sleeptime = 0;
+			//Gu8_Sleeptime = 0;
 			Display.WriteTextElement("Slave_Details", "t10", String(Slave[DispData1].S_Address, HEX));
 			Display.WriteNumElement("Slave_Details", "n0", Slave[DispData1].CellNumber);
 			Display.WriteNumElement("Slave_Details", "n2", Slave[DispData1].ErrorCounter);
@@ -366,14 +387,12 @@ void loop()
 		{
 			break;
 		}
-		default:
-		{
-			Logg.Logging(LEVEL_ERROR, "Command not recognized", DispIncoming, HEX);
-			break;
-		}
 	};
 	
-	FSM_Communication();
+	if(!Gb_CommBlock)
+	{
+		FSM_Communication();
+	}
 	
 	if(Gb_UpdateDisp)
 	{
@@ -383,7 +402,7 @@ void loop()
 	}
 }
 
-int8_t SearchNewSlave()// Sucht neue Slave Controller (Zellmonitore) und nimmt sie in die Slavetabelle auf 
+int8_t SearchNewSlave(uint8_t* SlaveTableNo)// Sucht neue Slave Controller (Zellmonitore) und nimmt sie in die Slavetabelle auf 
 {
 	Logg.Logging(LEVEL_FSM, "BEGINN of SearchNewSlave()");
 	Slave[0].SendCommand = ARE_U_THERE;
@@ -430,6 +449,7 @@ int8_t SearchNewSlave()// Sucht neue Slave Controller (Zellmonitore) und nimmt s
 					Slave[FreeSlot].SaveCellNo(FreeSlot, 0);// neue Slaves sind erstmal keiner Zelle zugeordnet
 					
 					Logg.Logging(LEVEL_MAIN, "Slave added to Slavetable at", FreeSlot);
+					*SlaveTableNo = FreeSlot;
 				}
 				else
 				{
@@ -484,10 +504,146 @@ int8_t ClearSlavetable()//Loescht die Slavetabelle im EEPROM
 	}
 }
 
+void VoltageSettings()
+{
+	uint8_t cnt1 = 0;
+	int8_t Ec1 = 0;
+	uint16_t Voltage = 0;
+	uint16_t ADCraw = 0;
+	uint16_t Gain = 0;
+	uint16_t Offset = 0;
+	uint8_t SlaveNo = 1;
+	uint32_t Timestamp = 0;
+	while(1)
+	{
+		wdt_reset();
+		uint32_t DispIncoming = Display.CheckIncome();
+		uint8_t DispCommand0 = DispIncoming & 0x000000FF;
+		uint8_t DispCommand1 = (DispIncoming>>8) & 0x000000FF;
+		uint8_t DispData1 = (DispIncoming>>16) & 0x000000FF;
+		uint8_t DispData2 = (DispIncoming>>24) & 0x000000FF;
+		
+		if(DispIncoming != 0 && DispIncoming != 0xFF)
+		{
+			Logg.Logging(LEVEL_FSM, "Incomming from Display", DispIncoming, HEX);
+			Logg.Logging(LEVEL_FSM, "Global Command from Display", DispCommand0, HEX);
+			Logg.Logging(LEVEL_FSM, "Local Command from Display", DispCommand1, HEX);
+			Logg.Logging(LEVEL_FSM, "Data1 from Display", DispData1, HEX);
+			Logg.Logging(LEVEL_FSM, "Data2 from Display", DispData2, HEX);
+		}
+	
+		switch(DispCommand1)// Befehlsauswahl Kommandos vom Display
+		{
+			default:
+			{
+				break;
+			}
+			case 0x01:// ein neuer slave wurde ausgewaehlt
+			{
+				Logg.Logging(LEVEL_FSM, "Slave eventually Changed");
+				SlaveNo = DispData1;
+				cnt1 = 0;
+				break;
+			}
+			case 0x02:// 
+			{
+				uint16_t val = DispData2<<8 + DispData1;
+				Logg.Logging(LEVEL_FSM, "set Offset", val, HEX);
+				break;
+			}
+			case 0x03:// 
+			{
+				uint16_t val = DispData2<<8 + DispData1;
+				Logg.Logging(LEVEL_FSM, "set Gain", val, HEX);
+				break;
+			}
+		
+		}
+		
+		if(DispCommand0 == 0xA7)
+		{
+			break;
+		}
+		if(Timestamp < millis())
+		{
+			switch(cnt1)
+			{
+				default:
+				{
+					cnt1 = 0;
+					break;
+				}
+				case 0:
+				{
+					Communication.MasterOrder(Slave[SlaveNo].S_Address, DISABLE_AUTO_BALLANCE);
+					Ec1 = Communication.CheckACK(Slave[SlaveNo].S_Address);
+					Logg.Logging(LEVEL_DEBUG, "ACK for DISABLE_AUTO_BALLANCE is", Ec1);
+					break;
+				}
+				case 1:
+				{
+					Communication.MasterOrder(Slave[SlaveNo].S_Address, SEND_VOLT);
+					Ec1 = Communication.CheckACK(Slave[SlaveNo].S_Address);
+					Logg.Logging(LEVEL_DEBUG, "ACK for SEND_VOLT is", Ec1);
+					uint8_t* dummy2;
+					uint8_t* dummy3;
+					Ec1 = Communication.GetData(Slave[SlaveNo].S_Address, (uint8_t)SEND_VOLT, &Voltage, dummy2, dummy3);
+					Logg.Logging(LEVEL_DEBUG, "GetData SEND_VOLT", Voltage);
+					Display.WriteNumElement("VoltCalibrate", "n2", Voltage);
+					break;
+				}
+				case 2:
+				{
+					Communication.MasterOrder(Slave[SlaveNo].S_Address, SEND_Volt_DN);
+					Ec1 = Communication.CheckACK(Slave[SlaveNo].S_Address);
+					Logg.Logging(LEVEL_DEBUG, "ACK for SEND_Volt_DN is", Ec1);
+					uint8_t* dummy2;
+					uint8_t* dummy3;
+					Ec1 = Communication.GetData(Slave[SlaveNo].S_Address, (uint8_t)SEND_Volt_DN, &ADCraw, dummy2, dummy3);
+					Logg.Logging(LEVEL_DEBUG, "GetData SEND_Volt_DN", ADCraw);
+					Display.WriteNumElement("VoltCalibrate", "n3", ADCraw);
+					break;
+				}
+				case 3:
+				{
+					Communication.MasterOrder(Slave[SlaveNo].S_Address, SEND_Volt_OFFSET);
+					Ec1 = Communication.CheckACK(Slave[SlaveNo].S_Address);
+					Logg.Logging(LEVEL_DEBUG, "ACK for SEND_Volt_OFFSET is", Ec1);
+					uint8_t* dummy2;
+					uint8_t* dummy3;
+					Ec1 = Communication.GetData(Slave[SlaveNo].S_Address, (uint8_t)SEND_Volt_OFFSET, &Offset, dummy2, dummy3);
+					Logg.Logging(LEVEL_DEBUG, "GetData SEND_Volt_OFFSET", Offset);
+					Display.WriteNumElement("VoltCalibrate", "n0", Offset);
+					break;
+				}
+				case 4:
+				{
+					Communication.MasterOrder(Slave[SlaveNo].S_Address, SEND_Volt_GAIN);
+					Ec1 = Communication.CheckACK(Slave[SlaveNo].S_Address);
+					Logg.Logging(LEVEL_DEBUG, "ACK for SEND_Volt_GAIN is", Ec1);
+					uint8_t* dummy2;
+					uint8_t* dummy3;
+					Ec1 = Communication.GetData(Slave[SlaveNo].S_Address, (uint8_t)SEND_Volt_GAIN, &Gain, dummy2, dummy3);
+					Logg.Logging(LEVEL_DEBUG, "GetData SEND_Volt_GAIN", Gain);
+					Display.WriteNumElement("VoltCalibrate", "n4", Gain);
+					break;
+				}
+			}
+			Logg.Logging(LEVEL_DEBUG, "cnt1", cnt1);
+			cnt1++;
+			Timestamp = millis() + 500;
+		}
+	}
+}
+
 void FSM_Communication()
 {
 	switch(Gu8_FSM_State)
 	{
+		default:
+		{
+			break;
+		}
 		case SELECT_SLAVE:
 		{
 			if(Slave[Gu8_ActiveSlave].SleepDelay!=0 || Slave[Gu8_ActiveSlave].S_Address == 0xFF || Slave[Gu8_ActiveSlave].S_Address == 0)

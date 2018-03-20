@@ -72,19 +72,25 @@ Zwischen den einzelnen Datagrammen vom Master an die Slaves muss ein Timeout von
 //Befehle die der Slave nur ausfuehrt
 #define NO_COMMAND 0x00
 #define ARE_U_THERE 0x01
-#define SET_SLA 0x10
-#define SLEEP 0x11
-#define PASS_BALL_ON 0x20
-#define PASS_BALL_OFF 0x21
-#define ACT_BALL_ON 0x22
-#define ACT_BALL_OFF 0x23
-#define BLINK_ON 0x28
-#define BLINK_OFF 0x29
+#define SET_SLA 0x02
+#define SLEEP 0x03
+#define PASS_BALL_ON 0x04
+#define PASS_BALL_OFF 0x05
+#define ACT_BALL_ON 0x06
+#define ACT_BALL_OFF 0x07
+#define BLINK_ON 0x08
+#define BLINK_OFF 0x09
+#define DISABLE_AUTO_BALLANCE 0x10
+#define ENABLE_AUTO_BALLANCE 0x11
 // Befehle auf die der Slave mit Daten antwortet
-#define SEND_VOLT 0x24
-#define SEND_INT_TEMP 0x25
-#define SEND_EXT_TEMP 0x26
-#define SEND_STATUS 0x27
+#define SEND_VOLT 0x20
+#define SEND_INT_TEMP 0x21
+#define SEND_EXT_TEMP 0x22
+#define SEND_Volt_DN 0x23
+#define SEND_Volt_OFFSET 0x24
+#define SEND_Volt_GAIN 0x25
+//... andere Befehle, die Daten senden hier dazwischen
+#define SEND_STATUS 0x3F
 
 
 class CellToMasterCom
